@@ -2,30 +2,42 @@
 ending = {
     create: function() {
         document.getElementById('graphs').style.display = "none"
-        stage = game.add.image(0, 0, 'ending');
-        stage.alpha = .9
-        this.header = game.add.text(w/2, h*5/7, 'Biomechanic!',{
-            font: '70px Arial',
-            fill: 'green',
-            fontWeight: 'bold',
-        })
-        this.header.anchor.set(.5)
-        this.header.angle = -13
-        this.header.stroke = "#000";
-        this.header.strokeThickness = 10;
+        this.endingImage = this.game.add.image(0, 0, 'ending');
+        this.endingImage.alpha = .1
         
-		this.text = game.add.text(w/2, h*3/5, 'Nice work! You have completed the game.',{
-            font: '44px Arial',
-            fill: 'green',
+        this.logo =  this.game.add.sprite(this.game.width/2, 170, 'logo-full');
+        this.logo.anchor.setTo(0.5);
+        
+        this.text = this.game.add.text(500, 380, 'Nice work!\nYou have completed all 7 levels.\nThanks for playing!',{
+            font: '44px OpenSans',
+            fill: '#b6cae8',
+            align: 'center',
         })
 		this.text.anchor.set(.5)
         this.text.stroke = "#000";
         this.text.strokeThickness = 8;
         
+        var _this = this
+//		this.input.onDown.add(function () {
+//                _this.game.state.start("PlayLevel");
+//            }, this)
         
-		this.input.onDown.add(function () {
-                game.state.start("LevelSelect");
-            }, this)
+        this.btn = this.game.add.button(500, 500, 'betButtons', function(){
+            _this.game.state.start("PlayLevel");
+        })
+        this.btn.tint = 0x78818e
+
+        this.btn.anchor.set(.5)
+        this.btn.style = {
+            font: '16px OpenSans',
+            fill: 'white',
+            align: "center",
+            'wordWrap' : false,
+        }
+        this.btn.txt = this.game.add.text(0, 2, this.game.en.restart, this.btn.style)
+        this.btn.txt.anchor.set(.5)
+        this.btn.addChild(this.btn.txt);
+        
     }
     
 }
