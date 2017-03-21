@@ -1,271 +1,410 @@
 playLevel = {
     create: function () {
-
-        // game.fpsProblemNotifier.add(function() {
-        //     game.time.desiredFps = game.time.suggestedFps - 8;
-        //     console.log('fps problem')
-        // }, this);
-
-
         // Set up the html elements
-        document.getElementsByTagName('body')[0].style = "background-color:#989;";
         document.getElementById('graphs').style.display = "inline";
         document.getElementById('posgraph-ctr').style.display = "inline";
         document.getElementById('velgraph-ctr').style.display = "inline";
-
-        game.stage.backgroundColor = '0x989';
-
-        // game.physics.startSystem(Phaser.Physics.ARCADE);
-        map = game.add.tilemap('MyTileMap');
-        map.addTilesetImage('road', 'road');
-        map.addTilesetImage('robot', 'robot');
-        map.addTilesetImage('buttons', 'buttons');
-        map.addTilesetImage('finish', 'finish');
-        map.addTilesetImage('handle', 'handle');
-        map.addTilesetImage('slider', 'slider');
-
-
-        layer = map.createLayer('RoadTiles');
-        layer.resizeWorld();
-        if (debug) { layer.debug = true; }
-
-
-        // At this point all the objects in the scene are setup
-        levelIndicator = new LevelIndicator(100, 60);
-        logo = game.add.sprite(306, 20, 'logo');
-        logo.scale.setTo(1);
-
-        signLocations = this.findObjectsByType('sign', map, 'Objects');
-        startSign = new Sign(signLocations[0], "0m")
-        startSign.markerone = game.add.sprite(signLocations[0].x, signLocations[0].y, 'whiteroadmarker')
-        startSign.markertwo = game.add.sprite(signLocations[0].x, signLocations[0].y + 64, 'whiteroadmarker')
-        signOne = new Sign(signLocations[2], "20m");
-        signTwo = new Sign(signLocations[3], "40m");
-        endSign = new Sign(signLocations[1], "60m");
-        distance = (endSign.x - startSign.x) // in pixels
-
-        finishline = game.add.group()
-        finishLocations = this.findObjectsByType('finish', map, 'Objects');
-        finishLocations.forEach(function (location) {
-            new Finish(location, finishline)
-        })
-
-
-        playerLocations = this.findObjectsByType('robot', map, 'Objects');
-        players = game.add.group()
-        playerone = new Computer(playerLocations[0], players, 0x554444, 'mouse')
-        playertwo = new Player(playerLocations[1], players, 0xADD8E6, 'cat')
-        playertwo.checkSolution()
-
-
-        // CPU's throttle was originally visible
-        handleLocation = this.findObjectsByType('handle', map, 'Objects');
-        playerone.lever = new Lever(handleLocation[1], playerone)  // computer
-        // playerone.lever.toggleEnabled()
-        playerone.lever.visible = false;
-        playerone.lever.slider.visible = false;
-        playerone.lever.text.visible = false;
-        playertwo.lever = new Lever(handleLocation[0], playertwo)  // player
-
-        betButton = new BetBox(700, 60)
-
-        // This let's us reposition the velocity graph
-        // document.getElementById('graphs').style.display = "inline";
-        if (game.level == 6) {
-            document.getElementById('velgraph-ctr').style="position:absolute; left:-365px;"
-            console.log('left')
-        }
-        posgraph = new Graph("position (m)", playerone, playertwo, 'posgraph')
-        velgraph = new Graph("velocity (m/s)", playerone, playertwo, 'velgraph')
-
-        posgraph.redraw()
-        velgraph.redraw()
-
-        if (game.level < 6) {
-            legend = new Legend(950, 350)
-        } else { legend = new Legend(530, 350)   }
-
-        // This sucks. It was shoehorned in because too many pieces need to be done in a certain order.
-        pointerloc = {} // for corrections
-        if (game.level === 1 ){
-            document.getElementById('graphs').style.display = "none";
-            legend.toggleHide()
-
-
-            pointerloc.x = playertwo.lever.slider.x
-            pointerloc.y = playertwo.lever.slider.y
-            pointerloc.y += 168
-            pointerloc.x += 40
-            pointer = new Pointer(pointerloc)
-
-        } else if (game.level === 2) {
-
-            posgraph.fullGraph()
-            velgraph.fullGraph()
-
-            pointerloc.x = playertwo.lever.slider.x
-            pointerloc.y = playertwo.lever.slider.y
-            pointerloc.y += 168
-            pointerloc.x += 40
-            pointer = new Pointer(pointerloc)
-
-
-        } else if (game.level === 3 ) {
-            document.getElementById('graphs').style.display = "none";
-            legend.toggleHide()
-
-            pointerloc.x = playertwo.lever.slider.x
-            pointerloc.y = playertwo.lever.slider.y
-            pointerloc.y += 168
-            pointerloc.x += 40
-            pointer = new Pointer(pointerloc)
-
-        } else if (game.level === 4 ) {
-            document.getElementById('graphs').style.display = "none";
-            legend.toggleHide()
-            
-            playertwo.lever.inputEnabled = false
-            playertwo.lever.toggleEnabled()
-            playertwo.enableChangeDelay()
-
-            pointerloc.x = playertwo.delayController.x
-            pointerloc.x += 50
-            pointerloc.y = playertwo.delayController.y
-            pointerloc.y += 64
-            pointer = new Pointer(pointerloc)
-
-
-        } else if (game.level === 5 ) {
-            posgraph.fullGraph()
-            velgraph.fullGraph()
-            playertwo.lever.inputEnabled = false
-            playertwo.lever.toggleEnabled()
-            playertwo.lever.visible = false;
-            playertwo.lever.slider.visible = false;
-            playertwo.lever.text.visible = false;
-
-            graphControl = new GraphControl(20, 340)
-
-
-            pointerloc.x = graphControl.x
-            pointerloc.y = graphControl.y
-            pointerloc.y += 95
-            pointerloc.x += 50
-            pointer = new Pointer(pointerloc)
-        } else if (game.level === 6 ) {
-            posgraph.fullGraph()
-            velgraph.fullGraph()
-            // playertwo.lever.inputEnabled = false
-            playertwo.lever.toggleEnabled()
-
-            // playertwo.lever.visible = false;
-            // playertwo.lever.slider.visible = false;
-            playertwo.lever.text.visible = false;
-            // playertwo.lever.label.visible = false
-
-            // graphControl = new GraphControl(50, 340)
-            document.getElementById('posgraph-ctr').style.display = "none";
-
-            // pointerloc.x = graphControl.x
-            // pointerloc.y = graphControl.y
-            // pointerloc.y += 118
-            // pointer = new Pointer(pointerloc)
-            pointerloc.x = playertwo.lever.slider.x
-            pointerloc.y = playertwo.lever.slider.y
-            pointerloc.y += 168
-            pointerloc.x += 40
-            pointer = new Pointer(pointerloc)
-
-        } else if (game.level === 7 ) {
-            // playertwo.lever.inputEnabled = false
-            posgraph.fullGraph()
-            velgraph.fullGraph()
-            document.getElementById('velgraph-ctr').style.display = "none";
-            playertwo.lever.text.visible = false;
-            
-            legend.minimouse.visible = false;
-            legend.mouseline.visible = false
-
-            pointerloc.x = playertwo.lever.slider.x
-            pointerloc.y = playertwo.lever.slider.y
-            pointerloc.y += 168
-            pointerloc.x += 40
-            pointer = new Pointer(pointerloc)
-
-        }
-
-        promptBox = new Prompt(430,600)
-
-        // game.time.desiredFps = game.time.suggestedFps - 5;
-
-    },
-
-    update: function() {
-
-        // console.log(game.input.x)
-        // console.log(game.input.y)
-
-        if (game.input.mousePointer.x > betButton.betButton.left && game.input.mousePointer.x < betButton.betButton.right 
-            && game.input.mousePointer.y < betButton.betButton.bottom && game.input.mousePointer.y > betButton.betButton.top) {
-                // console.log("hi")
-                var highlightpos = Math.ceil((game.input.mousePointer.x - betButton.betButton.left) / (betButton.betButton.width/3));
-                if (highlight != null && highlightframe != null && highlightframe != highlightpos) {
-                    highlight.destroy()
-                    highlight = null
-                }
-                if  (highlight == null) {
-                    highlight = game.add.sprite(0, betButton.betButton.boxone.centerY, "graybox")
-                    highlight.alpha = .2
-                    highlight.anchor.set(.5)
-                    highlight.scale.setTo(1.1, 0.5 )
-                    if (highlightpos == 1) {
-                        highlight.x = betButton.betButton.boxone.centerX - 4 // ?
-                    } else if (highlightpos == 2) {
-                        highlight.x = betButton.betButton.boxtwo.centerX
-                    } else if (highlightpos == 3) {
-                        highlight.x = betButton.betButton.boxthree.centerX
-                    }
-                    highlightframe = highlightpos
-                }
-            } else if (highlight != null) {
-                highlight.destroy()
-                highlight = null
-                highlightframe == null
-            }
-
-    },
-
-
-
-	findObjectsByType: function(type, map, layer) {
-		var result = new Array();
-		map.objects[layer].forEach(function(element) {
-			if (element.type === type) {
-				//Put all of the specifed objects in an array.
-				//Phaser uses top left, Tiled bottom left so we have to adjust
-				//so they might not be placed in the exact position as in Tiled
-				result.push(element);
-			}
-		});
-		return result;
-	},
-
-    render: function() {
         
-        // Debugging stuff, less important since physics was stripped out
-//		if (debug) {
-//			players.forEachAlive(this.renderGroup, this);
-//            finishline.forEachAlive(this.renderGroup, this);
-//			game.debug.text(game.time.fps || '--', 2, 14, "#00ff00");
-//            game.debug.geom( leverBounds[0], 'rgba(255,255,0,.4)' ) ;
-//            game.debug.geom( leverBounds[1], 'rgba(255,255,0,.4)' ) ;
-//		}
-	},
-    // rendergroup lets you add debug to ever member of a group
-	renderGroup: function(member) {
-		game.debug.body(member);
-	},
+        this.game.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'background');
+        
+        this.game.groups = {};
+        
+        
+        
+        this.game.logo =  this.game.add.sprite(this.game.width/2, 35, 'logo');
+        this.game.logo.anchor.setTo(0.5);
+        
+        this.game.menu = new Menu(this.game);
+        this.game.scoreplate = new ScorePlate(this.game)
 
+        
+        
+        this.game.settings = this.game.level[this.game.currentLevel]
 
+        if (this.game.settings.intro) {
+            
+        } else {
+            this.game.goButton = new ContinueButton(this.game)
+            this.game.goButton.top = this.game.velocityController.bottom 
+            this.game.goButton.centerX = this.game.velocityController.centerX
+        }
+        
+        this.track = new Track(this.game);
+        this.game.groups.playerGroup = this.game.add.group();
+        
+        this.game.playerone = new Computer(this.track.left + 125, this.track.top - 12, 'mouse', this.game)
+        this.game.groups.playerGroup.add(this.game.playerone)
+        this.game.playertwo = new Player(this.track.left + 125, this.track.top - 12 + 64, 'cat', this.game)
+        this.game.groups.playerGroup.add(this.game.playertwo)
+        
+        this.game.groups.playerGroup.forEach(function(player){ 
+            player.x = 125;
+        })
+        
+        var _this = this;
+        this.game.solvable = false;
+        while ( !this.game.settings.delayControl && !this.game.solvable ){
+                this.game.playertwo.speeds.forEach(function(playerSpeed){
+                        
+                    if ( playerSpeed*(60/_this.game.playerone.speed - _this.game.playertwo.delay) == 60 ) {
+                        _this.game.solvable = true;
+                    }
+                })
+                if (!_this.game.solvable) {
+                    _this.game.playertwo.delay = _this.game.playertwo.randomValue(_this.game.playertwo.delays);
+                    console.log('new delay: ' + _this.game.playertwo.delay)
+                }
+            }
+        
+        this.game.playerone.sideplate = new SidePlate(this.game.playerone, 'sideplate-p1', "#53667c", this.game)
+        this.game.playertwo.sideplate = new SidePlate(this.game.playertwo, 'sideplate-p2', "#665655", this.game)
+        
+        if (this.game.settings.velocityGraphInvisible) {
+            this.game.playertwo.sideplate.speed.setText("???");
+        }
+        
+        
+        this.game.velocityController = new VelocityController(this.game.playertwo, this.game)
+        this.game.velocityController.scale.set(.3)
+        
+        this.game.delayController = new DelayController(this.game.playertwo, this.game)
+        this.game.delayController.scale.set(.3)
+        this.game.delayController.centerX = this.game.velocityController.centerX
+        
+        this.game.graphDisplay = this.game.add.sprite(this.game.velocityController.right, this.game.velocityController.top, 'box')
+        this.game.graphDisplay.width = 830;
+        this.game.graphDisplay.height = this.game.velocityController.height + 45;
+        this.game.graphDisplay.legend = this.game.add.sprite(this.game.graphDisplay.centerX, this.game.graphDisplay.top + 20, 'legend')
+        this.game.graphDisplay.legend.anchor.set(0.5)
+        this.game.graphDisplay.legend.scale.set(0.6)
+        this.game.graphDisplay.legend.visible = false
+//        this.game.graphDisplay.addChild(this.game.graphDisplay.legend)
+        if (this.game.settings.graphVisibleBeforeGo) {
+//            this.game.graphDisplay.flasher = new Flasher(this.game.graphDisplay)
+        }
+        
+        
+        this.game.posgraph = new Graph(this.game.en.position, this.game.playerone, this.game.playertwo, 'posgraph', this.game)
+        this.game.velgraph = new Graph(this.game.en.speed, this.game.playerone, this.game.playertwo, 'velgraph', this.game)
+
+        this.game.velgraph.fullGraph(this.game);
+        this.game.posgraph.fullGraph(this.game);
+        
+        this.game.betbox = new BetBox(this.game);
+//        this.game.groups.betButtons.forEach(function(button){
+//            button.frame = 0;
+//        })
+        
+        this.game.footer = new Footer(this.game);
+        this.game.footer.progressIndicator = new ProgressIndicator(this.game)
+                
+        if (this.game.settings.velocityControl) {
+            this.game.velocityController.visible = true;
+        } else {
+            this.game.velocityController.visible = false;
+        }
+        
+        if (this.game.settings.delayControl) {
+            this.game.delayController.visible = true;
+        } else {
+            this.game.delayController.visible = false;
+        }
+        
+        
+        if (this.game.settings.graphVisibleBeforeGo == true) {
+            this.game.graphDisplay.legend.visible = true;
+            document.getElementById('graphs').style.display = "inline";
+            if (this.game.settings.positionGraphInvisible) {
+                document.getElementById('posgraph-ctr').style.display = "none";
+            } else {
+                document.getElementById('posgraph-ctr').style.display = "inline";
+            }
+            if (this.game.settings.velocityGraphInvisible) {
+                document.getElementById('velgraph-ctr').style.display = "none";
+            } else {
+                document.getElementById('velgraph-ctr').style.display = "inline";                
+            }
+        } else {
+            document.getElementById('graphs').style.display = "none";
+            document.getElementById('posgraph-ctr').style.display = "none";
+            document.getElementById('velgraph-ctr').style.display = "none";
+        }
+        
+        if (this.game.settings.intro) {
+            this.game.score = 0
+            this.game.scoreplate.update()
+            this.game.footer.box.visible = false
+
+            this.game.introText = new TextBox(this.game.world.centerX,this.game.world.centerY, this.game)
+            this.game.introText.top = this.game.track.bottom;
+            this.game.graphDisplay.visible = false;
+            
+            this.game.playerone.animations.play('run', 8, true);
+            var _this = this;
+            _this.game.timeoutA = setTimeout(function() {
+                _this.game.mousespeech = new Speech(_this.game.playerone, _this.game)
+                _this.game.mousespeech.text.setText(_this.game.en.introMouseSpeech)
+
+                _this.game.timeoutB = setTimeout(function(){
+                        _this.game.mousespeech.visible = false
+
+                        _this.game.mouserun = setInterval(function(){
+                            _this.game.playerone.x += 3
+                            if (_this.game.playerone.x > _this.game.tracklength) {
+                                clearInterval(_this.game.mouserun)
+                                _this.game.introText.text.setText(_this.game.en.introTextBoxA)
+                                _this.game.playerone.animations.stop(null, true);
+                                _this.game.catspeech = new Speech(_this.game.playertwo, _this.game)
+                                _this.game.catspeech.text.setText(_this.game.en.introCatSpeech)
+                                _this.game.next = _this.game.add.button(
+                                    _this.game.introText.centerX, _this.game.introText.centerY + 20, 'betButtons',
+                                    function(){
+                                        _this.game.introText.text.setText(_this.game.en.introTextBoxB)
+                                        _this.game.next.destroy()
+                                        _this.game.next = _this.game.add.button(
+                                        _this.game.introText.centerX, _this.game.introText.bottom - 58, 'betButtons',
+                                            function(){
+                                                partC(_this.game);
+                                                
+                                            })
+                                        _this.game.next.anchor.set(.5)
+                                        _this.game.next.tint = 0x72A5A5;
+                                        _this.game.next.flasher = new Flasher(_this.game.next)
+                                        _this.game.next.events.onInputOver.add(function(){
+                                            _this.game.next.tint = 0x619391;
+                                        }, this);   
+                                        _this.game.next.events.onInputOut.add(function(){
+                                            _this.game.next.tint = 0x72A5A5;
+                                        }, this);   
+                                        _this.game.next.text = _this.game.add.text(0, 0, 
+                                            _this.game.en.continue,
+                                            {font: '16px OpenSans', fill: 'white'}
+                                        );
+                                         _this.game.next.text.anchor.set(.5)
+                                         _this.game.next.addChild( _this.game.next.text);
+                                        
+                                        
+                                    })
+                                _this.game.next.anchor.set(.5)
+                                _this.game.next.tint = 0x72A5A5;
+                                _this.game.next.flasher = new Flasher(_this.game.next)
+                                _this.game.next.events.onInputOver.add(function(){
+                                    _this.game.next.tint = 0x619391;
+                                }, this);   
+                                _this.game.next.events.onInputOut.add(function(){
+                                    _this.game.next.tint = 0x72A5A5;
+                                }, this);   
+                                _this.game.next.text = _this.game.add.text(0, 2, 
+                                    _this.game.en.ok,
+                                    {font: '24px OpenSans', fill: 'white'}
+                                );
+                                 _this.game.next.text.anchor.set(.5)
+                                 _this.game.next.addChild( _this.game.next.text);
+                            }
+                        }, 2)
+                    }, 3000);
+            }, 2000);
+        }
+        
+        var endTutorial = function(game) { 
+            game.currentLevel++;
+            
+            game.state.restart();}
+        
+        var partC = function(game) {
+            game.playerone.x = game.playertwo.x
+            game.catspeech.visible = false
+            game.introText.text.setText('')
+            game.next.destroy()
+            var _game = game;
+            var counter = 0
+            game.mouserun = setInterval(function(){
+                            _game.playerone.animations.play('run', 8, true);
+                            _game.playerone.x += 1
+                            if (counter > 500) {
+                                _game.playertwo.animations.play('run', 8, true);
+                                _game.playertwo.x+=3.1
+                            } else { counter++ }
+                
+                            if (_game.playerone.x > _this.game.tracklength) {
+                                _game.playertwo.x = game.playerone.x
+                                clearInterval(_game.mouserun)
+                                game.introText.text.setText(game.en.introTextBoxC)
+                                _game.playerone.animations.stop(null, true);
+                                _game.playertwo.animations.stop(null, true);    
+                                _game.catspeech.text.setText(_game.en.great)
+                                _game.catspeech.x = 1004
+                                _game.catspeech.visible = true
+                                
+                                game.scoreplate.stars.frame = 1
+                                game.scoreplate.stars.flasher = new Flasher(game.scoreplate.box)
+                                
+                                _game.next = _game.add.button(
+                                    _game.introText.centerX, _game.introText.centerY + 20, 'betButtons',
+                                    function(){
+                                        _game.catspeech.visible = false
+                                        partD(_this.game)
+                                    })
+                                _this.game.next.anchor.set(.5)
+                                _this.game.next.tint = 0x72A5A5;
+                                _this.game.next.flasher = new Flasher(_this.game.next)
+                                _this.game.next.events.onInputOver.add(function(){
+                                    _this.game.next.tint = 0x619391;
+                                }, this);   
+                                _this.game.next.events.onInputOut.add(function(){
+                                    _this.game.next.tint = 0x72A5A5;
+                                }, this);   
+                                _this.game.next.text = _this.game.add.text(0, 0, 
+                                    _this.game.en.continue,
+                                    {font: '16px OpenSans', fill: 'white'}
+                                );
+                                 _this.game.next.text.anchor.set(.5)
+                                 _this.game.next.addChild( _this.game.next.text);
+                            
+                                
+                                                                
+                                _game.star = _game.add.sprite(_game.next.centerX + 150, _game.next.centerY, 'star')
+                                _game.star.anchor.set(.5)
+                                _game.world.bringToTop(_game.star)
+                                _game.star.scaleValue = 1
+                                _game.star.scaleIncrement = 0.01
+                                _game.star.grow = setInterval(function(){
+                                    _game.star.scaleValue += _game.star.scaleIncrement
+                                    _game.star.scale.set(_game.star.scaleValue)
+                                    if (_game.star.scale.x > 1.09) {
+                                       _game.star.scaleIncrement *= -1
+                                    } else if (_game.star.scale.x < 0.91) {
+                                        _game.star.scaleIncrement *= -1
+                                    }
+                                }, 50)
+                                
+                            }
+            }, 2)
+            
+            
+            
+        }
+        
+        var partD = function(game){
+            game.introText.text.setText(game.en.introTextBoxD)
+            game.playerone.x = game.track.left + 125
+            game.playertwo.x = game.track.left + 125
+            game.groups.betButtons.forEach(function(button){button.inputEnabled = false})
+            game.world.bringToTop(game.groups.betButtons)
+            game.groups.betButtons.visible = true
+            game.footer.box.visible = true
+            game.betbox.text.visible = true
+            game.world.bringToTop(game.betbox.text)
+            game.star.visible = false
+            game.next.destroy();
+            
+            game.next = game.add.button(
+                game.introText.centerX, game.introText.centerY + 20, 'betButtons',
+                function(){
+                    partE(game);
+                })
+            game.next.anchor.set(.5)
+            game.next.tint = 0x72A5A5;
+            game.next.flasher = new Flasher(game.next)
+            game.next.events.onInputOver.add(function(){
+                _this.game.next.tint = 0x619391;
+            }, this);   
+            game.next.events.onInputOut.add(function(){
+                game.next.tint = 0x72A5A5;
+            }, this);   
+            game.next.text = game.add.text(0, 0, 
+                game.en.continue,
+                {font: '16px OpenSans', fill: 'white'}
+            );
+             game.next.text.anchor.set(.5)
+             game.next.addChild(game.next.text);
+       
+        }
+        
+        var partE = function(game){
+            game.introText.text.setText(game.en.introTextBoxE)
+            game.star.visible = true
+            game.star.x += 35
+            game.star.y -= 90
+            game.next.destroy();
+            game.next = game.add.button(
+                game.introText.centerX, game.introText.centerY + 80, 'betButtons',
+                function(){
+                    endTutorial(game);
+                })
+            game.next.anchor.set(.5)
+            game.next.tint = 0x72A5A5;
+            game.next.flasher = new Flasher(game.next)
+            game.next.events.onInputOver.add(function(){
+                _this.game.next.tint = 0x619391;
+            }, this);   
+            game.next.events.onInputOut.add(function(){
+                game.next.tint = 0x72A5A5;
+            }, this);   
+            game.next.text = game.add.text(0, 0, 
+                game.en.continue,
+                {font: '16px OpenSans', fill: 'white'}
+            );
+             game.next.text.anchor.set(.5)
+             game.next.addChild(game.next.text);
+        }
+        
+        
+        
+        
+        
+        
+        
+        if (this.game.settings.betInfo && this.game.settings.velocityInfo) {
+            this.game.velocityInfo = new InfoBox(this.game.graphDisplay.left + 150, this.game.graphDisplay.centerY, this.game, '')
+            this.game.velocityInfo.drawLine('left', 150, 300)
+            this.game.velocityInfo.text.setText(this.game.en.velocityInfoA)
+            this.game.velocityInfo.preserve = true
+            this.game.betInfo = new InfoBox(this.game.velocityInfo.right + 150, this.game.velocityInfo.centerY, this.game, '')
+            this.game.betInfo.drawLine('bottom', this.game.betbox.box.centerX, this.game.betbox.box.top + 20 )
+            this.game.betInfo.text.setText(this.game.en.velocityInfoB)
+            this.game.betInfo.preserve = true
+            this.game.betInfo.visible = false
+            this.game.betInfo.graphics.visible = false
+            
+        
+        }
+        
+        if (this.game.settings.graphInfo) {
+            this.game.graphInfo = new InfoBox(700, this.game.track.centerY, this.game, '')
+            this.game.graphInfo.drawLine('bottom', 850, this.game.graphDisplay.top + 20)
+            this.game.graphInfo.text.setText(this.game.en.graphInfoA)
+        }
+        
+        if (this.game.settings.liveInfo) {
+            this.game.liveInfo = new InfoBox(this.game.graphDisplay.left + 230, this.game.graphDisplay.centerY, this.game, '')
+            this.game.liveInfo.drawLine('left', 150, 300)
+            this.game.liveInfo.text.setText(this.game.en.liveInfoA)
+        }
+        
+        if (this.game.settings.delayInfo) {
+            this.game.delayInfo = new InfoBox(this.game.graphDisplay.left + 230, this.game.graphDisplay.centerY, this.game, '')
+            this.game.delayInfo.drawLine('left', 150, 300)
+            this.game.delayInfo.text.setText(this.game.en.delayInfoA)
+        }
+        
+        if (this.game.settings.speedInfo) {
+            this.game.delayInfo = new InfoBox(300, 150, this.game, '')
+            
+            this.game.delayInfo.text.setText(this.game.en.speedInfoA)
+        }
+        
+        if (this.game.settings.useGraphInfo) {
+            this.game.delayInfo = new InfoBox(this.game.graphDisplay.left + 150, this.game.graphDisplay.centerY, this.game, '')
+            
+            this.game.delayInfo.text.setText(this.game.en.useGraphInfoA)
+        }
+        
+        if (this.game.settings.matchInfo) {
+            this.game.delayInfo = new InfoBox(this.game.graphDisplay.left + 550, this.game.graphDisplay.centerY, this.game, '')
+            
+            this.game.delayInfo.text.setText(this.game.en.matchInfoA)
+        }
+        
+    }
 };
-

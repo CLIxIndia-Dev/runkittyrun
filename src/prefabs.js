@@ -1,792 +1,392 @@
-// All the objects used in biomechanic
+class GameReporter {
+	constructor() {
+        this.uuid = this.getCookie('session_uuid');
+	}
 
+	submitData(data) {
+		var xhr = new XMLHttpRequest();
 
-// Used in the tutorial for the toons to talk to each other
-class SpeechBubble  {
-    constructor(x, y, text) {
-        // super(game, obj.x + 50, obj.y, "speech")
-        this.speech = game.add.sprite(x + 48, y - 112, "speech")
-        this.speech.tint = 0xffccff
-               
-        this.text =  game.add.text(0, 0, text, {
-            font: "23px Arial",
-            fill: "#000",
-            align: "center",
-            // wordWrap: true,
-            // wordWrapWidth: 200,
-		});
+        // This part gets unplatform's session uuid if available
+        // and creates a json string for the ajax POST. The /appdata/ api
+        // is pretty flexible for the params field. Timestamps are generated
+        // server-side & don't need to be included.
+		var data_string = {}
         
-        // this.speech.addChild(this.text);
-        this.speech.scale.set(.8)
-        this.text.scale.set(.8)
-        this.text.anchor.set(.5)
-        this.text.y = this.speech.centerY - 5
-        this.text.x = this.speech.centerX + 6
-        // this.text.setText(text)
-        // game.add.existing(this.text);
+        // if you want to test with a session id, you can set
+        // document.cookie = "session_uuid=test"
+		data_string['session_id'] = this.uuid;
         
-    }
-    toggle() {
-        this.speech.visible =! this.speech.visible
-        this.text.visible =! this.text.visible
-    }
-    destroy() {
-        this.speech.destroy()
-        this.text.destroy()
-    }
+        
+		for (var key in data) {data_string[key] = data[key];};
+        
+        var qbank = { data : data_string }
+        qbank = JSON.stringify(qbank);
+
+		xhr.open('POST', '/api/v1/logging/genericlog', true); // True means async
+        xhr.setRequestHeader("x-api-proxy", this.uuid)
+		xhr.setRequestHeader("Content-Type","application/json");
+		xhr.send(qbank);
+		if (xhr.response != 200) {
+//            xhr.close()
+            var xhr = new XMLHttpRequest();
+            var unplatform = JSON.stringify(data_string);
+            xhr.open('POST', '/api/appdata/', true); // True means async
+            xhr.setRequestHeader("Content-Type","application/json");
+            xhr.send(unplatform);
+        }
+	};
+    
+    // Generic get cookie function 
+	getCookie(cname) {
+		var name = cname + "=";
+		var ca = document.cookie.split(';');
+		for(var i=0; i<ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') c = c.substring(1);
+			if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
+		}
+        console.log('no uuid found')
+	};
+    
+    // The report function is used to report stateless data. This means reports should include
+    // as much data and relevant metadata as possible. Timestamps are recorded serverside and
+    // are used with reports to reconstruct what students did. Example:
+    // var reporter = new GameReporter(); reporter.report('click', {button_name : 'start'});
+    report(event, params) {
+            var data = {
+                // app_name ideally should be get the app's name
+                // via an environment variable but for now it's hard coded
+                "app_name": "runkittyrun",
+                "version": "1.0",
+                // usually the event that triggrs the action, e.g. go_button_clicked
+                // this field has a max length of 32 chars
+                "event_type": event,
+                // params is the place to dump data related to the event. no max length and
+                // can include sub objects. this data is stringified in the submit data function. 
+                // ex: params : {level : 2, player_velocity : 30, computer_velocity : 20 }
+                "params": params,
+            };
+            this.submitData(data);
+        
+        }
 }
 
-// Most buttons which "do" something use this class
-class LabelButton extends Phaser.Button {
-    constructor(game, x, y, key, label, callback, callbackContext, overFrame, outFrame, downFrame, upFrame) {
-        super(game, x, y, key, callback, callbackContext, overFrame, outFrame, downFrame, upFrame);
+class Menu {
+    constructor(game) {
+        this.game = game;
+//        
+//        this.style = {
+//          'font': '30px OpenSans',
+//          'fill': 'black'
+//        };
+        var _this = this;
+
+        var levnum;
+        if (game.currentLevel === 0) {
+            levnum = "TUTORIAL";
+        } else { levnum = "LEVEL " + game.currentLevel; }
+        this.levelButton = new LabelButton(game,
+            game.width / 2 + 280, 30,
+            "dropdown_button",
+            [0x618DCE, 0x427EC6],
+            levnum, 
+            function(){
+                _this.toggleMenu(_this.game);
+            });
+        this.levelButton.button.label.addColor('white', 0)
+        
+        game.groups.menuGroup = game.add.group();
+        
+        this.menubox = game.add.sprite(this.levelButton.button.x  , 128, 'menubox')
+        this.menubox.anchor.set(0.5)
+        this.menubox.alpha = 0.4
+        game.groups.menuGroup.add(this.menubox)
+        
+        this.menuButtons = {};
+        for (var i = 0; i <= game.levels; i++) {
+            this.setupButton(game, i);
+        }
+        game.groups.menuGroup.scale.setTo(0);
+        
+        
+        
+    }
+        
+    toggleMenu(game) {
+        if(game.groups.menuGroup.scale.y === 0){
+        //          var menuTween = game.add.tween(game.menuGroup.scale).to(
+        //              { x: 1, y: 0}, 500, Phaser.Easing.Back.Out, true);
+            
+            game.world.bringToTop(game.groups.menuGroup)
+
+            game.groups.menuGroup.scale.setTo(1);
+            
+        } else {
+        //          var menuTween = game.add.tween(game.menuGroup.scale).to(
+        //              { x: 1, y: 1}, 500, Phaser.Easing.Back.Out, true);     
+            game.world.bringToTop(game.groups.menuGroup)
+
+            game.groups.menuGroup.scale.setTo(0);
+        }
+
+    } 
+    
+    setupButton(game, i) {
+
+        var levnum;
+        if (i === 0) {
+            levnum = "TUTORIAL";
+        } else { levnum = "LEVEL " + i; }
+        
+        var posX = ( i%2 == 0 ? this.levelButton.button.x - 70 : this.levelButton.button.x + 70)
+        var posY = ( i%2 == 0 ? 70 + 19*i : 70 + 19*(i-1))
+
+        this.menuButtons[i] = new LabelButton(
+            this.game, posX, posY,
+            "menu_button",
+            [0xFFFFFF, 0xCCCCFF],
+            levnum,
+            function(){
+                clearTimeout(game.fdbk)
+                clearTimeout(game.timeoutA)
+                clearTimeout(game.timeoutB)
+                clearInterval(game.mouserun)
+                clearInterval(game.finish)
+                game.bet = null
+                game.posgraph.resetGraph()
+                game.velgraph.resetGraph()
+                clearInterval(game.race);
+                game.playerone.animations.stop(null, true);
+                game.playertwo.animations.stop(null, true);
+                game.currentLevel = i;
+                game.reporter.report('level_selected', {
+                    'level': game.currentLevel
+                })
+                game.progress = 0
+                game.groups.menuGroup.scale.setTo(0);
+                game.state.restart();
+            });
+
+        var _btn = this.menuButtons[i].button;
+        this.game.groups.menuGroup.add(_btn);
+        
+    }
+
+}
+
+class LabelButton {
+    constructor(game, x, y, key, colors, label, callback) {
+        this.button = game.add.button(x, y, key, callback);
+        this.button.tint = colors[0];
         this.style = {
-          'font': '30px Arial',
-          'fill': 'black'
+          'font': '17px OpenSans',
+          'fill': '#4976bf',
+          'align': "center"
         };
-        this.anchor.setTo(0.5);
-        this.label = new Phaser.Text(game, 0, 0, label, this.style);
+        this.button.anchor.setTo(0.5);
+        this.button.label = new Phaser.Text(game, 0, 0, label, this.style);
         //puts the label in the center of the button
-        this.label.anchor.setTo(0.5, 0.5);
-        this.addChild(this.label);
-        this.setLabel(label); //adds button to game
-        game.add.existing(this);
-        this.events.onInputOver.add(function(){
-            this.tint = 0xEEEEDD
+        this.button.label.anchor.setTo(0.75, 0.5);
+        this.button.addChild(this.button.label);
+        this.setLabel(label); 
+        this.button.events.onInputOver.add(function(){
+            this.button.tint = colors[1];
         }, this);
         
-        this.events.onInputOut.add(function(){
-            this.tint = 0xFFFFFF
+        this.button.events.onInputOut.add(function(){
+            this.button.tint = colors[0];
         }, this);
     }
     setLabel(label) {
-        this.label.setText(label);
+        this.button.label.setText(label);
     }
 };
 
-// Used on the level select screen to describe the game
-class Description extends Phaser.Sprite {
-    constructor(x,y, text){     
-        super(game, x, y, 'rectangle');
+class Track extends Phaser.Sprite {
+    constructor(game) {
+        super(game, 0, 70, 'track');
         game.add.existing(this);
-        this.xScale = 2.0
-        this.yScale = 0.7
-        
-        this.scale.setTo(this.xScale, 1)
-
-        this.tint = '0x0b4f6c'
-        this.alpha = 0.8
-        
-        this.textwidth = 228*this.xScale,
-        
-        this.style = {
-                font: "20px Arial",
-                fill: "white",
-                wordWrap: true,
-                wordWrapWidth: this.textwidth,
-                align: "center",
-            };
-        this.text = game.add.text(this.left + 31 , y + (10*this.yScale), text, this.style)
-
-        this.scale.setTo(this.xScale, this.text.height/(230))
-    }
-}
-
-// Used on the level select screen to create level navigation  uttons
-class LevelButton extends Phaser.Sprite {
-    constructor(x,y,levelnum){     
-        super(game, x, y, 'levelbutton');
-        game.add.existing(this);
-        this.style = {
-            'font': '18px Arial',
-            'fill': 'white'
-        };
-        if (levelnum == 0) {
-            this.label = "TUTORIAL"
-        } else {
-            this.label = "LEVEL " + levelnum
-        }
-        this.anchor.setTo(0.5, 0.5)
-        
-        this.text = game.add.text(this.x, this.y + 3, this.label, this.style)
-        this.text.anchor.setTo(0.5, 0.5)
-        // this.text.setShadow(2, 2, 'rgba(0,0,0,0.5)', 5);
-        
-        this.child = this.addChild(this.text);
-        game.add.existing(this.child);
-        
-        // this.text.setText(this.label)
-        
-        this.levelnum = levelnum
-        this.inputEnabled = true;
-        this.input.useHandCursor = true;
-        this.events.onInputDown.add(function(e){
-            game.level = levelnum
-            game.report("level_selected", {'level': game.level})
-            if (levelnum == 0) {
-                game.state.start("Tutorial")
-            } else {
-                game.state.start("PlayLevel")
-            }
-        })
-        this.alpha = 0.9
-        this.tint = 0x999999
-        this.scale.setTo(2.5, 1)
-        // this.wiggle()
-        this.inputEnabled = true;
-        this.events.onInputOver.add(function(){
-            this.scale.setTo(2.75, 1.1)
-            this.tint = 0xdddddd
-        }, this);
-        
-        this.events.onInputOut.add(function(){
-            this.scale.setTo(2.5, 1)
-            this.tint = 0x999999
-        }, this);
-    }
-    // wiggle() {
-    //     var _this = this
-    //     _this.angleIncrement = .15
-    //     _this.angleValue = Math.random()*2.5
-    //     _this.wiggler = setInterval(function(){
-    //             _this.angleValue += _this.angleIncrement
-    //             _this.angle = _this.angleValue
-    //             if (_this.angle > 2.5) {
-    //             _this.angleIncrement *= -1
-    //             } else if (_this.angle < -2.5) {
-    //                 _this.angleIncrement *= -1
-    //             }
-
-    //         }, 50)
-    // }
-}
-
-
-// Creates text centered on a sprite
-class CenteredText {
-    constructor(sprite, yoffset, txt, style) {
-        if (style.wordWrap) {
-            style.wordWrapWidth = style.wordWrapWidth || (sprite.width - 10)
-        } else if (style.wordWrap == null ) {
-            style.wordWrap = true
-            style.wordWrapWidth = sprite.width - 12
-        }
-        console.log(style.wordWrapWidth)
-        console.log(sprite.width)
-        this.text = game.add.text(0, 0, txt, style)
-        this.text.anchor.set(0.5);
-        this.text.x = Math.ceil((sprite.left + sprite.right) / 2);
-        this.text.y = Math.ceil((sprite.top + sprite.bottom) / 2) + yoffset;
-        this.lines = this.text.precalculateWordWrap(txt.toString())
-    }
-}
-
-// Creates a box with text centered and interior to it
-class TextBox extends Phaser.Sprite {
-    constructor(x,y, yoffset, xScale, yScale, txt, style) {
-        super(game,x,y,'rectangle');
-        game.add.existing(this);
-
-        this.scale.set(xScale, yScale)
-        this.anchor.set(0.5);
-
-        this.text = new CenteredText(this, yoffset, txt, style)
+        this.width = game.width;
+        this.height = 128;
+        game.track = this;
+        game.tracklength = 0.839*game.track.width; //730
     }
 }
 
 
-// This is a human player
+
 class Player extends Phaser.Sprite {
-    constructor(location, group, color, sprite) {
-        super(game, location.x+3 - 18, location.y - 64 - 14, sprite, 8);
+    constructor(x, y, sprite, game) {
+        super(game, x, y, sprite);
+        
+//        if (!game.groups.players) {
+//            game.groups.players = game.add.group();
+//        }
+//       
+        this.width = 64
+        this.height = 64
         this.delays = [1, 2, 3, 4, 5, 6 , 8, 9, 10, 12, 15];
         this.speeds = [3, 4, 5, 6, 7.5, 10, 12, 15, 20, 30, 60];
         this.speed = this.speeds[0]; // initial speed
-        // game.physics.enable(this);
-        // this.body.enable = true;
-        // this.body.setSize(6,32, -2, 32);
-        game.world.bringToTop(this)
-        // this.body.velocity.x = 0;
+        
         this.animations.add('run');
         game.add.existing(this);
-        this.color = color
-        if (game.level == 7 ) {
-            this.delay = 0
+        if (game.settings.zeroDelay) {
+            this.delay = 0;
         } else {
-            this.delay = this.randomValue(this.delays.slice(0,computerSpeed+1));
-        }
-
-
-        group.add(this);
-        this.labelDelay(this.delay)
-        this.text.visible = true
-    }
-    // move() {
-    //     var _this = this
-    //     this.movement = setTimeout(function() {
-    //         _this.vel = distance * _this.speed / 60
-    //         _this.body.velocity.x = _this.vel
-    //         _this.animations.play('run', 8, true);
-    //         _this.lever.toggleEnabled();
-    //     }, this.delay * 1000); // in milliseconds
-    //     if (game.level != 4) {
-    //         this.countdown()
-    //     } else if (game.level == 4) {
-
-    //     }
-    // }
-
-    // Added to eliminate real physics from the game
-    fakeMove() {
-        var _this = this
-        this.rate = distance * this.speed / 60
-        this.movement = setTimeout(function() {
-            _this.motion = setInterval(function() {
-                _this.x += _this.rate * 30 / 1000
-                if (_this.x > 704 ) {
-
-                    if (_this.x > 704 + _this.speed*2 ) {
-                        clearInterval(_this.motion)
-                        _this.animations.stop(null, true);
-                    }
-                    betButton.showResult(playerone,playertwo);
-                    // if (Math.abs(playerone.x - playertwo.x) < 63) {
-                    if ( playertwo.speed*(60 - playerone.speed * playertwo.delay) == 60*playerone.speed ) {
-                        game.ontime = true
-                        promptBox.indicator.updateProgress()
-
-                    } else {
-                        game.ontime = false
-                        promptBox.updatePrompt() // will this fire multiple times.?
-                    }
-
-
-                }
-                },30)
-            _this.animations.play('run', 8, true);
-        }, this.delay * 1000); // in milliseconds
-        if (game.level != 4) {
-            this.countdown()
-        } else if (game.level == 4) {
-
+            this.delay = this.randomValue(this.delays.slice(0,game.computerSpeed+1));
         }
     }
-
-    // stop() {
-    //     var _this = this;
-    //     setTimeout(function(e) {
-    //         _this.animations.stop(null, true);
-    //         // _this.body.velocity.x = 0;
-    //     }, 1000); // in milliseconds
-    //     // promptBox.next_button.visible = true;
-    // }
-    labelDelay(label) {
-
-        this.backplate = game.add.sprite(this.x - 132 + 18, this.y +14,'rectangle')
-        this.backplate.scale.set(.35,.25)
-        this.backplate.tint = this.color
-
-
-        if (game.level == 4) {
-            this.flair = game.add.sprite(this.x - 128 + 18, this.y + 20,'speedometer')
-        } else {
-            this.flair = game.add.sprite(this.x - 128+ 18, this.y + 20,'hourglass')
-        }
-
-        this.flair.scale.set(.8)
-
-        this.sprite = game.add.sprite(this.x - 128 + 18, this.y + 44,'minicat')
-        this.sprite.scale.set(1.3)
-
-
-
-
-        this.text = game.add.text(this.x - 96 + 18, this.y + 18, "Delay:\n" + label + " s", {
-            font: "18px Arial",
-            fill: "#000",
-            align: "left"
-		});
-    }
-    // blinkDelay() {
-    //     var _this = this
-    //     _this.blink = setInterval(function(){
-    //             _this.text.visible = !_this.text.visible;
-    //         }, 500)
-
-    // }
-
-
-    // Invokes a new delay controller and hides the lever
-    enableChangeDelay() {
-        if (game.level == 4) {
-            // var _this = this
-            // this.text.inputEnabled = true;
-
-            // this.text.events.onInputUp.add(function(e){
-            //     _this.index = _this.delays.indexOf(_this.delay)
-            //     _this.delay = _this.delays[(_this.index + 1) % _this.delays.length ]
-            //     _this.text.destroy()
-            //     _this.labelDelay(_this.delay)
-            //     _this.enableChangeDelay()
-            //     clearInterval(_this.blink)
-            // })
-
-            this.text.destroy()
-            this.lever.visible = false;
-            this.lever.slider.visible = false;
-            this.lever.text.visible = false;
-
-            this.delayController = new DelayController(60, 400)
-
-
-        }
-    }
-
-
     randomValue(arr) {
         return arr[Math.floor(Math.random()*arr.length)]
     };
-    countdown() {
-        var _this = this;
-        this.counter = this.delay
-        if (this.counter > 0) {
-            this.timer = setInterval(function(e) {
-                _this.text.destroy()
-                _this.counter -= 1
-                _this.labelDelay(_this.counter)
-                if (_this.counter == 0) { clearInterval(_this.timer) }
-            }, 1000)
-        }
-    }
-    resetDelay() {
-        clearInterval(this.timer)
-        clearInterval(this.movement)
-        clearInterval(this.motion)
-    }
-
-    checkSolution() {
-        var _this = this
-        var speed = playerone.speeds[computerSpeed]
-        _this.solvable = false;
-        if (game.level != 4) {
-            while ( !_this.solvable  ){
-                _this.speeds.forEach(function(playerSpeed){
-
-                    if ( playerSpeed*(60/speed - _this.delay) == 60 ) {
-                        _this.solvable = true;
-                    }
-                })
-                if (!_this.solvable) {
-                    _this.delay = _this.randomValue(_this.delays);
-                    console.log('new delay: ' + _this.delay)
-                }
-            }
-            _this.text.destroy()
-            _this.labelDelay(_this.delay)
-        } else if (game.level == 4) {
-
-            while ( !_this.solvable  ){
-                _this.delays.forEach(function(playerDelay){
-
-                    if ( _this.speed*(60/speed - playerDelay) == 60 ) {
-                        _this.solvable = true;
-                    }
-                })
-                if (!_this.solvable) {
-                    _this.speed = _this.randomValue(_this.speeds);
-                    console.log('new speed: ' + _this.speed)
-                }
-            }
-            _this.text.destroy()
-            _this.labelDelay(_this.speed)
-
-
-        }
-    }
-};
+}
 
 // This creates a computer controlled player
 class Computer extends Player {
-    constructor(location, group, color, sprite) {
-        super(location, group, color, sprite);
+    constructor(x, y, sprite, game) {
+        super(x, y, sprite, game);
         this.delay = 0
         // this.speeds = [2, 3, 4, 5, 6, 10, 12, 15, 30]
         this.speeds = [30, 15, 12, 10, 6, 5, 4, 3]
         this.speed = this.randomValue(this.speeds)
-        this.labelSpeed(this.speed)
-        computerSpeed = this.speeds.indexOf(this.speed)
-    }
-    fakeMove() {
-        super.fakeMove()
-        this.lever.toggleEnabled();
-    }
-    labelSpeed(label) {
-        this.text.destroy()
-        this.sprite.destroy()
-
-        this.backplate = game.add.sprite(this.x - 132 + 18, this.y +14,'rectangle')
-        this.backplate.scale.set(.35,.25)
-        this.backplate.tint = this.color
-
-
-        this.sprite = game.add.sprite(this.x - 128 + 18, this.y + 44,'minimouse')
-        this.sprite.scale.set(1.3)
-
-        this.flair = game.add.sprite(this.x - 128 + 18, this.y + 20,'speedometer')
-        this.flair.scale.set(.8)
-
-        this.text = game.add.text(this.x - 96 + 18, this.y + 18, "Speed:\n" + label + " m/s", {
-            font: "18px Arial",
-            fill: "#FFF",
-            align: "left"
-		});
+//        this.labelSpeed(this.speed)
+        game.computerSpeed = this.speeds.indexOf(this.speed)
     }
 }
 
-// The finish line
-class Finish extends Phaser.Sprite {
-    constructor(location, group) {
-        super(game, location.x, location.y-64, 'finish');
-        // game.physics.enable(this)
-        // this.body.enable = true;
-		// this.body.setSize(10, 64);
-        game.add.existing(this)
-        group.add(this)
-    }
-}
 
-// The controller for a player's speed
-class Lever extends Phaser.Sprite {
-    constructor(location, player) {
-        location.y += 14
-        location.x -= 178
-        super(game, location.x, location.y+32, 'handle');
-        this.slider = game.add.sprite(location.x, location.y-128, 'slider')
-        // this.slider.tint = player.tint
-        this.y -= 64;
-        game.add.existing(this)
-        game.world.bringToTop(this)
 
-        if (game.level != 4 && game.level != 5 ) {
-//            this.label = game.add.text(this.x + 32, this.y - 92, "Cat Throttle", {
-//                font: "14px Arial",
-//                fill: "black",
-//                align: "center"
-//            });
-//            
-//            this.labelChild = this.addChild(this.label)
-//            game.add.existing(this.labelChild)
-//            this.labelChild.anchor.set(.5)
-            this.minicat = game.add.sprite(this.centerX, this.y - 99,'minicat')
-            this.minicat.anchor.set(.5)
-        }
         
-        this.increments = 128 / player.speeds.length
+// The controller for a player's speed
+class VelocityController extends Phaser.Sprite {
+    constructor(player, game) {
+        super(game, 0, 200, 'speed-box');
+        game.add.existing(this)
+        
+        this.player = player;
+        this.game = game;
+        
+        this.slider = game.add.sprite(this.x + 75, this.y - 35, 'speed-slider')
+//        this.slider.anchor.set(.5)
+        this.indicatorY = this.slider.bottom - 40
+        this.indicator = game.add.sprite(this.slider.centerX + 65, this.indicatorY - player.speed * 467/60, 'speed-indicator')
+        this.indicator.alpha = 0.9
+        this.increments = this.slider.height / player.speeds.length
 
         // Controls
-        this.inputEnabled = true;
-        this.input.useHandCursor = true;
-        var _this = this.slider
-        this.events.onInputUp.add(function(e){
-            // solve for % of the input bounds
-            var previous_speed = player.speed
-            player.speed = player.speeds[10 - Math.floor((e.y - _this.y)/9)] // improve this
-            e.updateText(player);
-            if (game.level == 2 || game.level == 3 || game.level == 6 || game.level == 7) {
-                posgraph.fullGraph()
-                velgraph.fullGraph()
-            }
-            game.report('throttle_input', {
-                    'previous_cat_speed': previous_speed,
-                    'level': game.level,
-                    'new_cat_speed': playertwo.speed,
-                    'cat_delay': playertwo.delay,
-                    'mouse_speed': playerone.speed,
-                    'mouse_delay': playerone.delay,
+        this.increaseButton = game.add.sprite(this.centerX + 120, this.slider.centerY - 150, 'speed-button')
+        this.increaseButton.anchor.set(.5)
+        this.display = game.add.sprite(this.increaseButton.centerX, this.slider.centerY, 'speed-displaybox')
+        this.display.anchor.set(.5)
+        this.text = game.add.text(this.display.centerX, this.display.centerY, this.player.speed + "m/s", {
+            font: '45px OpenSans',
+            fill: 'black',
+            align: "center"
+		});
+        this.text.anchor.set(0.5)
+        if (game.settings.velocityGraphInvisible) {
+//            this.text.visible = false;
+            this.text.setText(game.en.unknown)
+            this.indicator.visible = false
+        }
+        this.decreaseButton = game.add.sprite(this.centerX + 120, this.slider.centerY + 150, 'speed-button')
+        this.decreaseButton.anchor.set(.5)
+        this.decreaseButton.angle = 180;
+        
+        this.increaseButton.inputEnabled = true;
+        this.decreaseButton.inputEnabled = true;
+        this.increaseButton.input.useHandCursor = true;
+        this.decreaseButton.input.useHandCursor = true;
+        
+        this.increaseButton.flasher = new Flasher(this.increaseButton)
+        this.decreaseButton.flasher = new Flasher(this.decreaseButton)
+        
+        this.addChild(this.slider)
+        this.addChild(this.indicator)
+        this.addChild(this.increaseButton)
+        this.addChild(this.decreaseButton)
+        this.addChild(this.display)
+        this.addChild(this.text)
+        
+        this.report = function() {
+            game.reporter.report('speed_change', {
+                    'level': game.currentLevel,
+                    'new_cat_speed': game.playertwo.speed,
+                    'cat_delay': game.playertwo.delay,
+                    'mouse_speed': game.playerone.speed,
+                    'mouse_delay': game.playerone.delay,
                     'level_progress': game.progress,
                 })
-        })
+        }
+        var _this = this
+        
+        this.increaseButton.events.onInputDown.add(function(e){
+            if (_this.player.speed < 60) {
+                _this.index = _this.player.speeds.indexOf(_this.player.speed)
+                _this.player.speed = _this.player.speeds[(_this.index + 1) % _this.player.speeds.length ]
 
-
-        this.input.enableDrag();
-        this.input.useHandCursor = true;
-        this.bounds = new Phaser.Rectangle(this.x, this.y - 92, 64, 127);
-        this.input.boundsRect = this.bounds;
-        if (debug) { leverBounds.push(this.bounds) }
-
-
-        this.input.enableSnap(64, 9, true, true, 14, 0);
-
-
-        if (game.level == 4) {
-            while (playertwo.speed < playerone.speed) {
-                console.log(playertwo.speed)
-                playertwo.speed = playertwo.randomValue(playertwo.speeds)
-                console.log(playertwo.speed)
+                _this.updateIndicator()
+                _this.updateDisplay()
+                _this.game.velgraph.fullGraph(_this.game)
+                _this.game.posgraph.fullGraph(_this.game)
+                _this.player.sideplate.update()
+                _this.report()
+                
             }
-        }
+        })
+        this.increaseButton.events.onInputOver.add(function(){
+            this.increaseButton.tint = 0x427EC6;
+        }, this);
+        this.increaseButton.events.onInputOut.add(function(){
+            this.increaseButton.tint = 0xFFFFFF;
+        }, this);        
+        
+        this.decreaseButton.events.onInputDown.add(function(e){
+            if (_this.player.speed > 3) {
+                _this.index = _this.player.speeds.indexOf(_this.player.speed)
+                _this.player.speed = _this.player.speeds[(_this.index - 1) % _this.player.speeds.length ]
 
-        this.textcolor = '#fff'
-        this.text = game.add.text(this.slider.x - 10 + 4, this.slider.y + 130, "Speed:\n" + player.speed + " m/s", {
-            font: "28px Arial",
-            fill: this.textcolor,
-            align: "center"
-		});
-        // this.child = this.addChild(this.text)
-        // game.add.existing(this.child)
-        // this.text.anchor.set(.5)
+                _this.updateIndicator()
+                _this.updateDisplay()
+                _this.game.velgraph.fullGraph(_this.game)
+                _this.game.posgraph.fullGraph(_this.game)
+                _this.player.sideplate.update()
+                _this.report()
+            }
+        })
+        this.decreaseButton.events.onInputOver.add(function(){
+            this.decreaseButton.tint = 0x427EC6;
+        }, this);
+        this.decreaseButton.events.onInputOut.add(function(){
+            this.decreaseButton.tint = 0xFFFFFF;
+        }, this);
     }
-    toggleEnabled() {
-        if (game.level <= 3) {
-            this.inputEnabled =! this.inputEnabled;
+
+    updateIndicator() {
+        this.indicator.y = this.indicatorY - this.player.speed * 467 / 60
+    }
+    updateDisplay() {
+        if (this.game.settings.velocityGraphInvisible) {
+//            this.text.visible = false;
+            this.text.setText(this.game.en.unknown)
+        } else {
+            this.text.setText(this.player.speed + "m/s")
         }
-    }
-    updateText(player) {
-        this.text.destroy();
-        this.text = game.add.text(this.slider.x - 10 + 4, this.slider.y + 130, "Speed:\n" + player.speed + " m/s", {
-            font: "28px Arial",
-            fill: this.textcolor,
-            align: "center"
-		});
-        if (game.level === 6 || game.level === 7) { this.text.visible = false; }
     }
 };
 
 
-// This handles the betting
-class BetBox extends TextBox {
-    constructor(x,y) {
-        super(x, y, -25, 1.3, 0.5, "Make Your Bet!",{
-            font: "18px Arial",
-            align: "center",
-            fill: "white",
-        });
-        this.tint = '0x0b4f6c'
-        this.alpha = 0.7
-        // this.scale.setTo(1.3, 0.4) //dims ~340x77
-
-        this.text = new CenteredText(this, -5, "Tap to predict if your cat will arrive...", {
-            font: "16px Arial",
-            align: "center",
-            fill: "white",
-        })
-
-
-        this.betButton = new BetButton(
-            Math.round((this.left + this.right)/2),
-            Math.round((this.top + this.bottom)/2) + 30
-            );
-        this.betButton.anchor.set(0.5)
-
-        this.visible = false
-        
-        var _this = this
-        playLevel.input.onDown.add(_this.makePointer, 
-            playLevel)
-        
-    }
-    check(comp,player) {
-        this.betButton.check(comp,player)
-    }
-    showResult(comp,player) {
-        this.betButton.showResult(comp,player)
-    }
-    toggleEnabled() {
-        this.betButton.toggleEnabled()
-    }
-    makePointer() {
-        this.pointer = new Pointer(this)
-        this.pointer.y = 70
-        this.pointer.x = 540
-        this.pointer.angle = 260
-        playLevel.input.onDown.remove(betButton.makePointer, playLevel)
-    }
-
-}
-
-
-class BetButton extends Phaser.Sprite {
-    constructor(x,y){
-        super(game, x, y, 'bet');
-        game.add.existing(this);
-        this.xScale = 1.1
-        this.scale.setTo(this.xScale, 0.5 )
-        this.frame = 0
-        this.inputEnabled = true;
-        this.input.useHandCursor = true;
-        var _this = this
-        this.events.onInputDown.add(function(e){
-            // Get the position of the mouse and determine which box was clicked
-            e.frame = Math.ceil((game.input.mousePointer.x - _this.left) / (_this.xScale * 64));
-            console.log(e.frame)
-
-            game.report("bet_chosen", {
-                'level': game.level,
-                'bet': ['too_soon','on_time','too_late'][e.frame - 1],
-
-                })
-            })
-
-        this.style = {
-                'font': '14px Arial',
-            };
-
-        this.boxone = game.add.text(this.x, this.y + 1, "too soon", this.style)
-        this.boxone.x = Math.ceil((this.left + this.right) / 2) - 128 - 64*this.xScale;
-        // this.boxone.y = Math.ceil((this.top + this.bottom) / 2);
-        this.boxone.anchor.set(0, .5)
-
-
-        this.boxtwo = game.add.text((this.x + 64*this.xScale), this.y+ 1, "on time", this.style)
-        this.boxtwo.x = Math.ceil((this.left + this.right) / 2) - 128;
-        // this.boxtwo.y = Math.ceil((this.top + this.bottom) / 2);
-        this.boxtwo.anchor.set(0, .5)
-
-        this.boxthree = game.add.text(this.x + 128*this.xScale, this.y+ 1, "too late", this.style)
-        this.boxthree.x = Math.ceil((this.left + this.right) / 2) - 128 + 64*this.xScale;
-        // this.boxthree.y = Math.ceil((this.top + this.bottom) / 2);
-        this.boxthree.anchor.set(0, .5)
-
-        // this.events.onInputOver.add(function(e){
-        //     _this.highlightpos = Math.ceil((game.input.mousePointer.x - _this.left) / (_this.xScale * 64));
-        //     _this.highlight = game.add.sprite(0, _this.boxone.centerY, "graybox")
-        //     _this.highlight.alpha = .1
-        //     _this.highlight.anchor.set(.5)
-        //     _this.highlight.scale.setTo(2, 1 )
-        //     if (_this.highlightpos == 1) {
-        //         _this.highlight.x = _this.boxone.centerX
-        //     } else if (_this.highlightpos == 2) {
-        //         _this.highlight.x = _this.boxtwo.centerX
-        //     } else if (_this.highlightpos == 3) {
-        //         _this.highlight.x = _this.boxthree.centerX
-        //     }
-                       
-            
-        // }, this);
-        
-        // this.events.onInputOut.add(function(){
-        //     _this.highlight.destroy()
-        // }, this);
-
-
-
-
-        this.finished = false
-
-    }
-    
-    check(comp,player) {
-        // console.log(player.x)
-        // console.log(comp.x)
-        if ( playertwo.speed*(60  - playerone.speed * playertwo.delay) == 60 *playerone.speed ) { // on time
-            game.ontime = true
-            return 2; // the frame it should be
-        } else if (player.speed*60/(60+player.speed*player.delay) < comp.speed) { // too slow
-            game.slow = true
-            return 3;
-        } else { // too soon
-            game.fast = true
-            return 1;
-        }
-    }
-    showResult(comp,player) {
-        var label;
-        if (!this.finished) {
-            if (this.frame) {
-                console.log('test2')
-                this.feedbackFrame = game.add.sprite(this.x, this.y - 26, 'rectangle')
-                this.feedbackFrame.tint = 0xADD8E6
-                this.feedbackFrame.anchor.set(.5)
-                this.feedbackFrame.scale.setTo(this.xScale, 0.35 )
-
-                this.style = {
-                    'font': '23px Arial',
-                };
-                console.log(this.check(comp,player))
-                if (this.frame == this.check(comp,player)) {
-                    this.style.fill = "green";
-                    label = "Yes, you bet right.\nThe cat was "
-                    this.result = 'correct'
-                } else {
-                    this.style.fill = "red";
-                    label = "No, you bet wrong.\nThe cat was "}
-                    this.result = 'incorrect'
-                if (game.ontime) {
-                    label += 'on time.'
-                    this.guess = 'on_time'
-                } else if (game.slow) {
-                    label += 'late.'
-                    this.guess = 'too_slow'
-                } else if (game.fast) {
-                    label += 'early.'
-                    this.guess = 'too_fast'
-                }
-
-                game.report('bet_results', {
-                    'result': this.result,
-                    'guess': this.guess,
-                    'level': game.level,
-                    'cat_speed': playertwo.speed,
-                    'cat_delay': playertwo.delay,
-                    'mouse_speed': playerone.speed,
-                    'mouse_delay': playerone.delay,
-                    'level_progress': game.progress,
-
-                })
-
-                this.label = game.add.text(this.x, this.y - 26, label, this.style)
-                this.label.anchor.set(.5)
-
-
-
-            }
-            this.finished = true;
-        }
-    }
-    toggleEnabled() {
-        // if (this.lock == null) {
-        //     this.lock = game.add.sprite(this.x + 64, this.y, 'lock')
-        //     this.lock.alpha = 0.6
-        // }
-        this.inputEnabled =! this.inputEnabled;
-    }
-}
-
-// Roadsigns
-class Sign extends Phaser.Sprite {
-    constructor(location, label){
-        super(game,  location.x + 32, location.y - 54, 'sign');
-        this.style = {
-          'font': '20px Arial',
-          'fill': 'black'
-        };
-        this.anchor.setTo(0.5, 0);
-        this.label = new Phaser.Text(game, 0, 0, label, this.style);
-        //puts the label in the center of the button
-        this.label.anchor.setTo(0.5, -0.7);
-        this.addChild(this.label);
-        this.setLabel(label); //adds button to game
-        game.add.existing(this);
-        this.scale.set(1, .75)
-
-        this.markerone = game.add.sprite(location.x, location.y, 'roadmarker')
-        this.markertwo = game.add.sprite(location.x, location.y + 64, 'roadmarker')
-    }
-    setLabel(label) {
-        this.label.setText(label);
-    }
-}
-
 // The graphs
 class Graph extends RGraph.Line {
-    constructor(ylabel, playerone, playertwo, id) {
+    constructor(ylabel, playerone, playertwo, id, game) {
 
         var data = [new Array(30), new Array(30)]
         if (id == "posgraph") {
-            var graphdata = [positionData(playerone), positionData(playertwo)];
+            var graphdata = [positionData(game.playerone), positionData(game.playertwo)];
             var stepped = false;
         } else if (id == "velgraph") {
-            var graphdata = [velocityData(playerone), velocityData(playertwo)];
+            var graphdata = [velocityData(game.playerone), velocityData(game.playertwo)];
             var stepped = true;
             enableArrows()
         } else {};
@@ -802,7 +402,7 @@ class Graph extends RGraph.Line {
                 backgroundGridAutofitNumhlines: 12,
                 // backgroundGridColor: '#eee',
                 backgroundGridDotted: true,
-                backgroundColor: '#88c',
+                backgroundColor: '#ebeded',
             }
         }).draw();
 
@@ -810,7 +410,7 @@ class Graph extends RGraph.Line {
             id: id,
             data: data,
             options: {
-                colors: ['#'+playerone.color.toString(16), '#'+playertwo.color.toString(16)],
+                colors: ['#144da8', '#ddac12'],
                 linewidth: 2,
                 // colorsAlternate: true,
                 // tickmarks: 'tick',
@@ -896,22 +496,22 @@ class Graph extends RGraph.Line {
 
     }
 
-    fullGraph() {
+    fullGraph(game) {
         if (this.id == "posgraph") {
-            if (game.level  == 7) {
+            if (game.settings.mousePlotInvisible) {
                 this.graphdata = [new Array(30),
-                this.positionData(playertwo),];
+                this.positionData(game.playertwo)];
             } else {
-                this.graphdata = [this.positionData(playerone),
-                this.positionData(playertwo)];
+                this.graphdata = [this.positionData(game.playerone),
+                this.positionData(game.playertwo)];
             }
         }
         else if (this.id == "velgraph") {
-            this.graphdata = [this.velocityData(playerone),
-            this.velocityData(playertwo)];
+            this.graphdata = [this.velocityData(game.playerone),
+            this.velocityData(game.playertwo)];
         } else { console.log('graph error') };
 
-        if (game.level != 3 && game.level != 4) {
+        if (!game.settings.livePlot) {
             this.line.original_data[0] = this.graphdata[0]
             this.line.original_data[1] = this.graphdata[1]
             this.redraw()
@@ -953,515 +553,864 @@ class Graph extends RGraph.Line {
     }
 }
 
-
-// The up/down arrows which allow control of the graph
-class GraphControl extends Phaser.Sprite {
-    constructor(x,y){
-        super(game, x, y - 6, 'arrows');
-        game.add.existing(this);
-
-        this.inputEnabled = true;
-        this.input.useHandCursor = true;
-        var _this = this
-        this.events.onInputDown.add(function(e){
-            // Get the position of the mouse and determine which arrow was clicked
-            var arrow = Math.floor((game.input.mousePointer.y - y) / 64);
-            if (arrow) {
-                _this.index = playertwo.speeds.indexOf(playertwo.speed)
-                playertwo.speed = playertwo.speeds[(((_this.index - 1) % playertwo.speeds.length) + playertwo.speeds.length) % playertwo.speeds.length ]
-            } else {
-                _this.index = playertwo.speeds.indexOf(playertwo.speed)
-                playertwo.speed = playertwo.speeds[(_this.index + 1) % playertwo.speeds.length ]
-            }
-
-            velgraph.fullGraph()
-            posgraph.fullGraph()
-            playertwo.lever.updateText(playertwo)
-        })
-    }
-}
-
-// Upper left button which shows level and allows level nagivation
-class LevelIndicator {
-    constructor(x,y) {
-
-        this.text = new TextBox(x,y, -30, 0.9, 0.5, "Level: " + game.level, {
-                font: "19px Arial",
-                fill: "#ffffff",
-            })
-        this.text.visible = false; // makes the backplate invisible
-
-        this.button = new TextBox(
-            Math.ceil(this.text.centerX),
-            Math.ceil(this.text.centerY + 10),
-            1, .7,.2, 'Change Your Level', {
-            font: '16px Arial',
-            fill: '#000',
-            });
-        this.button.tint = 0xADD8E6
-        this.button.alpha = 0.7
-
-        this.button.inputEnabled = true;
-        this.button.input.useHandCursor = true;
-        this.button.events.onInputUp.add(function () {
-            posgraph.resetGraph()
-            velgraph.resetGraph()
-            playerone.resetDelay()
-            playertwo.resetDelay()
-            clearInterval(promptBox.wiggler)
-            game.progress = 0
-            if (game.level == 6) { document.getElementById('velgraph-ctr').style="position:absolute; left:0px;"}
-            document.getElementById('graphs').style.display = "none"
-            game.state.start("LevelSelect");
-        });
-        this.button.events.onInputOver.add(function(){
-            // this.button.scale.setTo(1.1, 0.55)
-            this.button.tint = 0x8aacb8
-        }, this);
-        
-        this.button.events.onInputOut.add(function(){
-            // this.button.scale.setTo(1, 0.5)
-            this.button.tint = 0xADD8E6
-        }, this);
-        
-    }
-}
-
-
-class ProgressIndicator extends Phaser.Sprite {
-    constructor(x,y){
-        super(game,x,y,'stars');
-        game.add.existing(this);
-
-        if (typeof game.progress === 'undefined') {
-            game.progress = 0
+class BetBox {
+    constructor(game) {
+        this.game = game;
+        this.box = game.add.sprite(0, 480, 'box');
+        this.box.visible = false;
+        this.box.width = 1024;
+        this.box.height = 100;
+        this.style = {
+            font: '22px OpenSans',
+            fill: 'white',
+            align: "center",
         }
-
-        this.scale.set(.5)
-
-        this.frame = game.progress
-        this.finished = false
-    }
-
-    updateProgress() {
-        if (!this.finished) {
-            var _this = this
-            if (game.progress < 2) {
-                game.progress++
-                this.frame = game.progress
-                this.flipper = -1
-                this.blink = setInterval(function(){
-                    _this.frame += _this.flipper
-                    _this.flipper *= -1
-                }, 150)
-                setTimeout(function(){
-                    clearInterval(_this.blink)
-                    _this.frame = game.progress
-                }, 1500)
-
-
-            } else {
-                this.frame = 3
-                game.progress = 0
-                
-                game.level++
+        this.text = game.add.text(this.box.centerX - this.box.width * .5 * .5, this.box.centerY, 
+            game.en.betBox,
+            this.style );
+        this.text.anchor.set(.5)
+//        this.box.addChild(this.text);
+        
+        game.groups.betButtons = game.add.group();
+        
+        this.slow = this.setupButton([0xEFC66A, 0xEFB643], this.box.centerX + 300, game.en.late, -1, this.game)
+        game.groups.betButtons.add(this.slow)
+        
+        this.ontime = this.setupButton([0x7DA8DB, 0x5692CC], this.box.centerX + 160, game.en.ontime, 0, this.game)
+        game.groups.betButtons.add(this.ontime)
+        
+        this.fast = this.setupButton([0xDD8985, 0xD36262], this.box.centerX + 20, game.en.soon, 1, this.game)
+        game.groups.betButtons.add(this.fast)
+        
+//        this.box.addChild(game.groups.betButtons)
+        
+        
+        
+        game.startRace = function(game) {
+            
+            if (game.settings.betInfo && game.settings.velocityInfo) {
+                game.betInfo.visible = false
+                game.betInfo.graphics.visible = false
             }
             
-            promptBox.updatePrompt()
-            this.finished = true;
+            game.groups.betButtons.forEach(function(button){button.inputEnabled = false})
+
+            game.countdown = new Countdown(game)
+            game.countdown.countdown()
+            setTimeout(function(){
+                if (game.settings.graphVisibleAfterGo == true) {
+                    game.graphDisplay.legend.visible = true;
+                    document.getElementById('graphs').style.display = "inline";
+                    if (game.settings.positionGraphInvisible) {
+                        document.getElementById('posgraph-ctr').style.display = "none";
+                    } else {
+                        document.getElementById('posgraph-ctr').style.display = "inline";
+                    }
+                    if (game.settings.velocityGraphInvisible) {
+                        document.getElementById('velgraph-ctr').style.display = "none";
+                    } else {
+                        document.getElementById('velgraph-ctr').style.display = "inline";                
+                    }
+                } else {
+                    document.getElementById('graphs').style.display = "none";
+                    document.getElementById('posgraph-ctr').style.display = "none";
+                    document.getElementById('velgraph-ctr').style.display = "none";
+                }
+
+
+                if (game.playertwo.speed*(60  - game.playerone.speed * game.playertwo.delay) == 60 * game.playerone.speed) {
+                    console.log('win')
+                    game.result = 0;
+                } else if (game.playertwo.speed*(60  - game.playerone.speed * game.playertwo.delay) > 60 * game.playerone.speed) {
+                    console.log('fast')
+                    game.result = 1;
+                } else if (game.playertwo.speed*(60  - game.playerone.speed * game.playertwo.delay) < 60 * game.playerone.speed) {
+                    console.log('slow')
+                    game.result = -1;
+                }
+
+                game.reporter.report('race_data', {
+                    'result': ['too_late','on_time','too_soon'][game.result + 1],
+                    'bet': game.bet != null ? ['too_late','on_time','too_soon'][game.bet + 1] : null,
+                    'level': game.currentLevel,
+                    'cat_speed': game.playertwo.speed,
+                    'cat_delay': game.playertwo.delay,
+                    'mouse_speed': game.playerone.speed,
+                    'mouse_delay': game.playerone.delay,
+                    'level_progress': game.progress,
+
+                })
+                
+                var feedback = function(a,b, game) {
+                    game.footer.text.setText(b)
+                    game.footer.text.visible = true
+                    game.footer.text.addColor('#FFFF00', 0)
+                    var _a = a
+                    game.fdbk = setTimeout(function(){
+                        game.footer.text.addColor('#FFFFFF', 0)
+                        game.footer.texttwo.setText(_a)
+                        game.footer.texttwo.visible = true
+                        game.footer.texttwo.addColor('#FFFF00', 0)
+                        game.fdbk = setTimeout(function(){
+                            game.footer.texttwo.addColor('#FFFFFF', 0)
+                            if (game.currentLevel > game.levels) {
+                                game.add.button(game.footer.progressIndicator.next.x, game.footer.progressIndicator.next.y, 'betButtons', function(){
+                                    game.currentLevel = 0
+                                    game.state.start("Ending");
+                                })
+                            } else {
+                                game.footer.progressIndicator.next.visible = true;
+                            }
+                        },3000)
+                    }, 3000)
+                    
+                }
+                
+                
+
+                game.counter = 0
+                var delay = game.playertwo.delay * 1000;
+                var normalize = 7.30 / 60;
+
+                if (game.settings.livePlot) {
+                    game.posgraph.liveGraph()
+                    game.velgraph.liveGraph()
+                }
+
+                game.playerone.sideplate.countdown()
+                game.playertwo.sideplate.countdown()
+
+                game.race = setInterval(function(){ 
+
+                    if (game.bet == null) {
+                        game.groups.betButtons.visible = false;
+                        game.betbox.text.setText(game.en.nobet)
+                    }
+
+                    // The computer starts running and then after a delay, the player starts running
+                    game.playerone.x += game.playerone.speed * normalize;
+                    game.playerone.animations.play('run', 8, true);
+
+                    if (game.counter > delay) {
+                        game.playertwo.x += game.playertwo.speed * normalize;
+                        game.playertwo.animations.play('run', 8, true);
+                    }
+
+                    // Helper function for finishing the race
+                    var _game = game;
+                    var finish = function(loser, winner){
+                        console.log('finish')
+                        _game.finish = setInterval(function(){
+                            if (loser.x < winner.x) {
+                                loser.x += loser.speed * normalize;
+                            } else {
+                                loser.x = winner.x
+        //                        console.log(loser.x)
+        //                        console.log(winner.x)
+                                loser.animations.stop(null, true);
+                                clearInterval(_game.finish)
+                                _game.catspeech = new Speech(_game.playertwo, _game)
+                                _game.catspeech.text.setText(_game.en.nope)
+                            }
+                        }, 10)};
+
+                    // Check if the finish line has been reached and if the bet was right
+        //            if (Math.abs(game.playerone.x - game.tracklength) < 10 && Math.abs(game.playertwo.x - game.tracklength) < 10) {
+                    if (game.result == 0 && (Math.abs(game.playerone.x - game.tracklength) < 10 || Math.abs(game.playertwo.x - game.tracklength) < 10)) {
+                        
+                        game.betbox.text.visible = false
+                        game.groups.betButtons.visible = false
+
+                        game.scoreplate.stars.frame += 1
+                        clearInterval(game.race);
+                        while (game.playerone.x < Math.max(game.playerone.x, game.playertwo.x)){
+                               game.playerone.x += 1;
+                               }
+                        while (game.playertwo.x < Math.max(game.playerone.x, game.playertwo.x)){
+                               game.playertwo.x += 1;
+                               }
+                        game.playerone.x = game.playertwo.x
+                        game.playerone.animations.stop(null, true);
+                        game.playertwo.animations.stop(null, true);
+                        
+                        if (game.bet == 0) {
+                            feedback(game.en.rightontime, game.en.kittyontime, game)
+                            game.score++
+                            game.scoreplate.update()
+                        } else if (game.bet == -1 || game.bet == 1) {
+                            feedback(game.en.wrongontime, game.en.kittyontime, game)
+                        }
+//                        game.footer.text.setText(game.en.catch)
+                        if (game.progress < 2) {
+                            game.progress++
+                            game.scoreplate.update()
+                        } else {
+                            game.footer.progressIndicator.next.text.setText(game.en.nextlevel)
+                            game.scoreplate.stars.frame = 3;
+                            game.progress = 0;
+                            game.currentLevel++
+
+                            
+                            game.scoreplate.stars.flipper = true
+                            game.scoreplate.stars.blink = setInterval(function(){
+                                if (game.scoreplate.stars.flipper) {
+                                    game.scoreplate.stars.frame = 0;
+                                } else { 
+                                    game.scoreplate.stars.frame = 3
+                                }
+                                game.scoreplate.stars.flipper =! game.scoreplate.stars.flipper
+
+                            }, 350)
+                            
+                            var _game = game
+                            playLevel.input.onDown.add(function() {
+                                clearInterval(_game.scoreplate.stars.blink)
+                            }, playLevel)
+
+                            
+                            
+                            
+                            
+                        }
+                        
+                        game.catspeech = new Speech(game.playertwo, game)
+                        game.catspeech.text.setText(game.en.great)
+                    } else if (game.result == -1 && (Math.abs(game.playerone.x - game.tracklength) < 10 || Math.abs(game.playertwo.x - game.tracklength) < 10)) {
+                        game.betbox.text.visible = false
+                        game.groups.betButtons.visible = false
+                        
+                        clearInterval(game.race);
+                        game.playerone.animations.stop(null, true);
+                        finish(game.playertwo, game.playerone)
+                        if (game.bet == -1) {
+                            feedback(game.en.rightlate, game.en.kittylate, game)
+
+                            game.score++
+                            game.scoreplate.update()
+                        } else if (game.bet == 0 || game.bet == 1) {
+                            feedback(game.en.wronglate, game.en.kittylate, game)
+                        }
+//                        game.footer.text.setText(game.en.wrongfooter)
+
+
+                    } else if (game.result == 1 && (Math.abs(game.playerone.x - game.tracklength) < 10 || Math.abs(game.playertwo.x - game.tracklength) < 10)) {                        
+                        game.betbox.text.visible = false
+                        game.groups.betButtons.visible = false
+                        
+                        clearInterval(game.race);
+                        game.playertwo.animations.stop(null, true);
+                        finish(game.playerone, game.playertwo)
+                        if (game.bet == 1) {
+                            feedback(game.en.rightearly, game.en.kittyearly, game)
+                            game.score++
+                        } else if (game.bet == 0 || game.bet == -1) {
+                            feedback(game.en.wrongearly, game.en.kittyearly, game)
+                        }
+//                        game.footer.text.setText(game.en.wrongfooter)
+
+                    }
+                    game.counter += 10
+                }, 10)
+            }, 3000)
         }
-
+        
+        game.groups.betButtons.visible = false
+        this.text.visible = false
+        
+        
     }
+    setupButton(colors, x, text, id, game) {
+        var btn = this.game.add.button(x, this.box.centerY, 'betButtons', function(){
+            game.bet = id
+            console.log(id)
+//            btn.tint = 0xffffff
+            game.reporter.report("bet_chosen", {
+                'level': game.currentLevel,
+                'bet': ['too_soon','on_time','too_late'][id + 1],
 
-}
-
-// Little picture of a player avatars & colors
-class Legend {
-    constructor(x,y){
-        this.minimouse = game.add.sprite(x, y, 'minimouse')
-        this.minimouse.scale.set(1.7)
-        this.mouseline = this.draw(x + 40, y, '#544', false)
-
-        this.minicat = game.add.sprite(x, y+30,'minicat')
-        this.minicat.scale.set(1.7)
-        this.catline = this.draw(x + 40, y + 30, '#ADD8E6', true)
-
+                })
+            
+            game.groups.betButtons.forEach(function(button){button.frame = 0
+                                                           button.txt.y = 2})
+            btn.txt.y = 4 // moves the text so it looks like the button is pressed
+            btn.frame = 1
+            game.startRace(game)
+        })
+        btn.colors = colors;
+//        btn.alpha = 0.9
+        btn.id = id;
+        btn.anchor.set(.5)
+        btn.tint = colors[0]
+        btn.events.onInputOver.add(function(){
+            btn.tint = colors[1];
+        }, this);   
+        btn.events.onInputOut.add(function(){
+            btn.tint = colors[0];
+        }, this);
+        btn.style = {
+            font: '16px OpenSans',
+            fill: 'white',
+            align: "center",
+            'wordWrap' : false,
+        }
+        btn.txt = this.game.add.text(0, 2, text, btn.style)
+        btn.txt.anchor.set(.5)
+        btn.addChild(btn.txt);
+        return btn;
     }
     toggleHide() {
-        this.minicat.visible = !this.minicat.visible
-        this.catline.visible = !this.catline.visible
-        this.minimouse.visible = !this.minimouse.visible
-        this.mouseline.visible = !this.mouseline.visible
-
-    }
-    draw(x, y, color, dashed) {
-          var bmd = game.add.bitmapData(30,30);
-          bmd.ctx.beginPath();
-          bmd.ctx.lineWidth = "2";
-          bmd.ctx.strokeStyle = color;
-          if (dashed) {bmd.ctx.setLineDash([3])}
-          bmd.ctx.moveTo(0, 15);
-          bmd.ctx.lineTo(30 , 15);
-          bmd.ctx.stroke();
-          bmd.ctx.closePath();
-          return game.add.sprite(x, y, bmd);
+        if (this.game.settings.intro) {
+            this.box.visible = false;
+        } else {
+            this.box.visible =! this.box.visible
+        }
+        this.text.visible =! this.text.visible
+        this.game.groups.betButtons.visible =! this.game.groups.betButtons.visible
+        
     }
 }
 
-class Prompt extends TextBox{
-    constructor(x,y) {
-        super(x,y, 0, 3, .5, game.prompt[game.level], {
-          'font': '20px Arial',
-          'fill': 'white',
-          'wordWrap': true,
-          'wordWrapWidth': 620,
-        })
-        this.tint = '0x0b4f6c'
+class ContinueButton extends Phaser.Button{
+    constructor(game) {
+        super(game, 200, -50, 'betButtons')
+        game.add.existing(this)
+        var _this = this;
+        this.game = game;
+        this.onInputDown.add(function(){_this.makeBet(_this.game)})
+        this.anchor.set(0.5)
+        this.tint = 0x72A5A5;
+        this.flasher = new Flasher(this)
+        this.style = {
+            font: '14px OpenSans',
+            fill: 'white',
+            align: "center",
 
-        this.makeGoButton(x,y)
-        // this.replay_button = new LabelButton(game, 200, 150, 'buttons', "Replay",  this.resetGame, this, 2, 1, 0)
-
-
-        this.indicator = new ProgressIndicator(x+245,y+25)
-        this.indicator.visible = false
-
+        }
+        
+        this.text = game.add.text(0, 0, 
+            game.en.continue,
+            this.style );
+        this.text.anchor.set(.5)
+        this.addChild(this.text);
+        
+        this.scale.set(1.2)
+        
+        
+        this.events.onInputOver.add(function(){
+            _this.tint = 0x619391;
+        }, this);   
+        this.events.onInputOut.add(function(){
+            _this.tint = 0x72A5A5;
+        }, this);
     }
-    doBtnStartHandler() {  //when the game starts
-        levelIndicator.button.inputEnabled = false;
-        if (game.level == 3 || game.level == 4) {
-            document.getElementById('graphs').style.display = "inline";
-            legend.toggleHide()
-            posgraph.liveGraph()
-            velgraph.liveGraph()
+    // they are running from pixel 125 to 800 (= 0.78125 * track width)
+    // 675 pixels = 60m so if speed = 60 then in 1sec dx = 675
+    // and in 10ms dx = 6.75
+    makeBet(game){
+        
+        if (game.settings.betInfo && game.settings.velocityInfo) {
+            game.betInfo.visible = true
+            game.betInfo.graphics.visible = true
+            game.velocityInfo.visible = false
+            game.velocityInfo.graphics.visible = false
         }
-        if (game.level == 4) {
-            playertwo.delayController.plus.inputEnabled = false
-            playertwo.delayController.minus.inputEnabled = false
-        }
-		playerone.fakeMove();
-        playertwo.fakeMove();
-        betButton.inputEnabled = false;
-        betButton.toggleEnabled()
-        console.log(this.wiggler)
-        clearInterval(this.wiggler)
-		this.go_button.visible = false;
-        if (game.level != 4 && game.level != 5) { 
-            playertwo.lever.inputEnabled = false
-        } else if (game.level == 5) {
-            graphControl.inputEnabled = false
-        }
-	}
-
-    makeGoButton(x,y) {
-        // if (this.text.lines.length == 1 ) {
-        //     this.goXScale = this.text.lines[0].length/70
-        // } else {
-        //     this.text.lines = this.text.lines.sort(function(a, b){
-        //         return a.length - b.length;
-        //     });
-        //     this.goXScale = this.text.lines[0].length/this.text.lines[this.text.lines.length - 1].length
-        // }
-        // console.log(this.text.lines)
-        // if (this.text.lines.length)
-        // y += 10 * (this.text.lines.length - 1)
-        this.go_button = new LabelButton(game, this.centerX, y+37, 'buttons', "Go!", this.doBtnStartHandler, this, 2, 1, 0); // button frames 1=over, 0=off, 2=down
-        this.go_button.scale.set(.7)
-        // this.go_button.x = this.left + this.width*this.goXScale + 10
-        // this.go_button.x += (this.centerX - this.go_button.x)*.05
-        // if (this.go_button.x < this.centerX ) { this.go_button.x *= 1.5}
-        this.wiggle()
+        game.world.bringToTop(game.groups.betButtons);
+        game.groups.betButtons.visibile = true;
+        game.world.bringToTop(game.betbox.text);
+        game.betbox.text.visible = true
+        
+        game.groups.betButtons.forEach(function(button){button.flasher = new Flasher(button)})
+        
+        game.delayController.plus.inputEnabled = false
+        game.delayController.minus.inputEnabled = false
+        
+        game.velocityController.increaseButton.inputEnabled = false;
+        game.velocityController.decreaseButton.inputEnabled = false;
+        
+        game.goButton.frame = 1
+        game.goButton.text.y = 2
+        game.goButton.inputEnabled = false;
+        
+        game.goButton.text.setText(game.en.locked)
+        
+        game.groups.betButtons.visible = true;
+        game.betbox.text.visible = true;
+        
+               
     }
-    wiggle() {
-        var _this = this
-            // console.log(this)
-        _this.angleIncrement = .15
-        _this.angleValue = 0
-        _this.wiggler = setInterval(function(){
-                _this.angleValue += _this.angleIncrement
-                promptBox.go_button.angle = _this.angleValue
-                if (promptBox.go_button.angle > 2.5) {
-                _this.angleIncrement *= -1
-                } else if (promptBox.go_button.angle < -2.5) {
-                    _this.angleIncrement *= -1
+}
+
+class Footer {
+    constructor(game) {
+        this.game = game;
+        this.box = game.add.sprite(game.world.centerX, 530, 'footer');
+        this.box.width = game.width - 10;
+//        this.box.height = 300;
+        this.box.anchor.set(.5)
+        this.box.top = game.graphDisplay.bottom + 10;
+        
+        this.style = {
+            font: '28px OpenSans',
+            fill: 'white',
+            align: "center",
+            wordWrap : true,
+            wordWrapWidth : this.box.width - 500
+        }
+        this.text = game.add.text(-320 , -50, 
+            game.en.footerText,
+            this.style );
+        this.text.anchor.set(.5)
+        this.box.addChild(this.text);
+        this.text.visible = false
+        
+        this.texttwo = game.add.text(45 , -30, 
+            '',
+            this.style );
+        this.texttwo.anchor.set(.5)
+        this.box.addChild(this.texttwo);
+        this.texttwo.visible = false
+        
+    }
+    
+}
+
+class DelayController extends Phaser.Sprite {
+    constructor(player, game) {
+        super(game, 5, 250, 'delay-box');
+        game.add.existing(this)
+        console.log(player.speed)
+        this.player = player;
+        this.game = game;
+             
+        if (game.settings.delayControl) {
+            game.solvable = false;
+            var _this = this
+//            console.log('delay enabled, checking solvability')
+            while (game.playertwo.speed <= game.playerone.speed && !game.solvable) {
+                game.playertwo.speed = game.playertwo.randomValue(game.playertwo.speeds)
+                
+                game.playertwo.delays.forEach(function(playerDelay){
+                    if ( _this.game.playertwo.speed*(60/_this.game.playerone.speed - playerDelay) == 60 ) {
+                        _this.game.solvable = true;
+                    }
+                })
+                if (!_this.game.solvable) {
+                    _this.game.playertwo.speed = _this.game.playertwo.randomValue(_this.game.playertwo.speeds);
+                    console.log('new delay: ' + _this.game.playertwo.speed)
                 }
-
-            }, 50)
-
-    }
-
-
-
-    nextGame() {
-        document.getElementById('graphs').style.display = "none";
-        if (game.level == 5 && game.progress > 2) {
-            document.getElementById('velgraph-ctr').style="position:absolute; left:-430px;"
-        } else if (game.level == 6 && game.progress > 2) {
-            document.getElementById('velgraph-ctr').style="position:absolute; left:0px;"
-        }
-        if (game.level >= 8) {
-            
-            game.state.start("Ending");
-        } else {
-            posgraph.resetGraph()
-            velgraph.resetGraph()
-            playerone.resetDelay()
-            playertwo.resetDelay()
-            // this.indicator.finished = false;
-            game.ontime = null
-            game.slow = null
-            game.fast = null
-            game.state.restart(true, false)
-        }
-    }
-
-    resetGame() { //reset delay too asdf
-        this.reset_button.visible = false
-
-        this.indicator.visible = false
-
-        resetPlayer(playerone)
-        resetPlayer(playertwo)
-
-        posgraph.counter = 0
-        clearInterval(posgraph.plotter)
-        velgraph.counter = 0
-        clearInterval(velgraph.plotter)
-
-        betButton.finished = false;
-        betButton.betButton.inputEnabled = true;
-        betButton.betButton.finished = false;
-        betButton.betButton.frame = 0;
-        this.alsofinished = false
-        if (betButton.betButton.label != null) {
-            betButton.betButton.label.destroy()
-            betButton.betButton.feedbackFrame.destroy()
-        }
-
-        game.ontime = null
-        game.slow = null
-        game.fast = null
-
-        promptBox.text.text.destroy()
-
-        if (game.level == 4 ) {
-            playertwo.delayController.plus.inputEnabled = true
-            playertwo.delayController.minus.inputEnabled = true
-        }
-
-            
-        if (game.level != 4) {
-            playertwo.text.destroy()
-            playertwo.text = game.add.text(playertwo.x - 96 + 18, playertwo.y + 16, "Delay:\n" + playertwo.delay + " s", {
-                font: "18px Arial",
-                fill: "#000",
-                align: "left"
-            });
-        }
-
-        if (game.level == 3) {
-            document.getElementById('graphs').style.display = "none";
-            legend.toggleHide()
-
-
-        }
-
-
-        this.text = new CenteredText(this, 0, game.prompt[game.level], {
-          'font': '20px Arial',
-          'fill': 'white',
-          'wordWrap': true,
-        })
-        clearInterval(promptBox.wiggler)
-        this.makeGoButton(this.x,this.y)
-        if (game.level != 4 && game.level != 5 ) { playertwo.lever.inputEnabled = true }
-        if (game.level == 5 ) { graphControl.inputEnabled = false }
-
-
-        function resetPlayer(player) {
-            player.animations.stop(null, true);
-            // player.body.velocity.x = 0;
-            clearInterval(player.motion)
-            player.resetDelay()
-            player.x = 113
-        }
-
-    }
-
-    blinkIndicator() {
-        var _this = this
-        _this.blink = setInterval(function(){
-                _this.indicator.visible =! _this.indicator.visible;
-            }, 500)
-
-    }
-
-    updatePrompt() {
-
-        if (!this.alsofinished) {
-            this.text.text.destroy()
-            // this.go_button.visibile = false
-            levelIndicator.button.inputEnabled = true;
-            if (game.ontime) {
-                this.feedback = 'You caught the mouse!'
-                this.next_button = new LabelButton(game, this.x+100, this.y + 30, 'buttons', "Next", this.nextGame, this, 2, 1, 0);
-                this.next_button.scale.set(.7)
-                this.result = 'correct'
-            } else {
-                this.feedback = 'Hmmm…the Cat didn’t finish at the same time as the mouse. Try again. Click'
-                this.reset_button = new LabelButton(game, this.x+100, this.y + 30, 'buttons', "Reset", this.resetGame, this, 2, 1, 0);
-                this.reset_button.scale.set(.7)
-                this.result = 'incorrect'
+                player.sideplate.update()
             }
-
-            game.report('go_click_result', {
-                    'result': this.result,
-                    'level': game.level,
-                    'cat_speed': playertwo.speed,
-                    'cat_delay': playertwo.delay,
-                    'mouse_speed': playerone.speed,
-                    'mouse_delay': playerone.delay,
+        }
+        
+        this.report = function() {
+            game.reporter.report('speed_change', {
+                    'level': game.currentLevel,
+                    'new_cat_delay': game.playertwo.delay,
+                    'cat_speed': game.playertwo.speed,
+                    'mouse_speed': game.playerone.speed,
+                    'mouse_delay': game.playerone.delay,
                     'level_progress': game.progress,
                 })
-
-            this.text = new CenteredText(this, 0, this.feedback, {
-            'font': '20px Arial',
-            'fill': 'white',
-            'wordWrap': true,
-            })
-
-            if (game.progress == 0 && promptBox.indicator.frame == 0) {
+        }        
+        
+        var _this = this
+        this.plus = game.add.button(this.centerX + 180, this.centerY - 190, 'delay-plus', function(){
+            player.index = player.delays.indexOf(player.delay)
+            if (player.delay == player.delays[player.delays.length - 1]) {
 
             } else {
-                this.indicator.visible = true
+                player.delay = player.delays[(player.index + 1) % player.delays.length ]
             }
+            _this.text.setText(player.delay + 's')
+            player.sideplate.update()
+            
+            game.posgraph.fullGraph(game)
+            game.velgraph.fullGraph(game)
+            _this.report()
+        })
+        this.plus.events.onInputOver.add(function(){
+            this.plus.tint = 0x427EC6;
+        }, this);
+        this.plus.events.onInputOut.add(function(){
+            this.plus.tint = 0xFFFFFF;
+        }, this);
+        this.plus.anchor.set(.5)
+        
+        this.minus = game.add.button(this.centerX - 180, this.centerY - 190, 'delay-minus', function(){
+            player.index = player.delays.indexOf(player.delay)
+            if (player.delay == player.delays[0]) {
 
-        }
-        this.alsofinished = true
-
-
+            } else {
+                player.delay = player.delays[(player.index - 1) ]
+                
+            }
+            _this.text.setText(player.delay + 's')
+            player.sideplate.update()
+            game.posgraph.fullGraph(game)
+            game.velgraph.fullGraph(game)
+            _this.report()
+        })
+        this.minus.events.onInputOver.add(function(){
+            this.minus.tint = 0x427EC6;
+        }, this);
+        this.minus.events.onInputOut.add(function(){
+            this.minus.tint = 0xFFFFFF;
+        }, this);
+        this.minus.anchor.set(.5)
+        
+        this.display = game.add.sprite(this.centerX, this.centerY - 190, 'delay-display')
+        this.display.anchor.set(.5)
+        
+        this.text = game.add.text(this.display.centerX, this.display.centerY, this.player.delay + "s", {
+            font: '45px OpenSans',
+            fill: 'black',
+            align: "center"
+		});
+        this.text.anchor.set(0.5)
+        
+        
+        this.addChild(this.plus)
+        this.addChild(this.minus)
+        this.addChild(this.display)
+        this.addChild(this.text)
+        
+        this.plus.flasher = new Flasher(this.plus)
+        this.minus.flasher = new Flasher(this.minus)
     }
 }
+    
 
-
-class DelayController extends TextBox {
-    constructor(x,y) {
-        super(x,y, -15, .45, .35, 'Cat Delay Controller', {
-          'font': '15px Arial',
-          'fill': 'white',
-          'wordWrap': true,
-        })
-        this.tint = '0xc04a6c'
-        this.minicat = game.add.sprite(x+30, y-40, 'minicat')
-        // this.hourglass = game.add.sprite(x-50, y-40,'hourglass')
-        // this.hourglass.scale.set(.5)
-        this.displayStyle = {
-                'font': '15px Arial',
-                'fill': 'black',
-                'wordWrap': false,
-            }
-        this.delayDisplay = new TextBox(x,y+15, 0, .22, .10,  playertwo.delay + ' sec', this.displayStyle )
-        this.delayDisplay.tint = '0xc0f06d'
-
-        this.minus = game.add.sprite(x-40,y + 15,'minus')
-        this.minus.anchor.set(.5)
-        this.minus.scale.set(.8)
-        this.plus = game.add.sprite(x+40,y + 15,'plus')
-        this.plus.anchor.set(.5)
-        this.plus.scale.set(.8)
-
-        var _this = this
-        this.minus.inputEnabled = true;
-        this.plus.inputEnabled = true
-
-        this.plus.events.onInputUp.add(function(){
-            playertwo.index = playertwo.delays.indexOf(playertwo.delay)
-            if (playertwo.delay == playertwo.delays[playertwo.delays.length - 1]) {
-                
-            } else {
-                playertwo.delay = playertwo.delays[(playertwo.index + 1) % playertwo.delays.length ]
-            }
-            _this.delayDisplay.text.text.destroy()
-            _this.delayDisplay.text = new CenteredText(_this.delayDisplay, 0, playertwo.delay + ' sec', _this.displayStyle)
-            posgraph.fullGraph()
-            velgraph.fullGraph()
-        })
-
-        this.minus.events.onInputUp.add(function(){
-            playertwo.index = playertwo.delays.indexOf(playertwo.delay)
-            if (playertwo.delay == playertwo.delays[0]) {
-
-            } else {
-                playertwo.delay = playertwo.delays[(playertwo.index - 1) % playertwo.delays.length ]
-            }
-            _this.delayDisplay.text.text.destroy()
-            _this.delayDisplay.text = new CenteredText(_this.delayDisplay, 0, playertwo.delay + ' sec', _this.displayStyle)
-            posgraph.fullGraph()
-            velgraph.fullGraph()
-        })
-
-        // this.sprite = game.add.sprite(playertwo.x - 105, playertwo.y + 16,'minicat')
-        // this.sprite.scale.set(1.3)
-        this.text = game.add.text(playertwo.x - 80, playertwo.y + 18, "Speed:\n" + playertwo.speed + " m/s", {
-            font: "18px Arial",
-            fill: "#FFF",
+class SidePlate {
+    constructor(player, key, textcolor, game) {
+        this.player = player
+        this.game = game
+        this.box = game.add.sprite(player.centerX - 90, player.centerY + 12, key)
+//        biomechanic.game.add.sprite(123,123,'sideplate-p1')
+        this.box.anchor.set(0.5)
+//        this.box.tint = color;
+        this.delay = game.add.text(this.box.centerX + 2, this.box.centerY - 22, player.delay + 's', {
+            font: '16px OpenSans',
+            fill: textcolor,
             align: "left"
 		});
+        this.speed = game.add.text(this.box.centerX + 2, this.box.centerY + 2, player.speed + 'm/s', {
+            font: '16px OpenSans',
+            fill: textcolor,
+            align: "left"
+		});
+    }
+    update() {
+        this.delay.setText(this.player.delay + 's')
+        if (this.game.settings.velocityGraphInvisible) {
+            this.speed.setText(this.game.en.unknown)
+        } else {
+            this.speed.setText(this.player.speed + 'm/s')
+        }
+    }
+    countdown() {
+        var _this = this;
+        this.counter = this.player.delay
+        if (this.player.delay > 0) {
+            this.delay.addColor('#FF0000', 0)
+        }
+        if (this.counter > 0) {
+            this.timer = setInterval(function() {
+//                _this.delay.destroy()
+                _this.counter -= 1
+                _this.delay.setText(_this.counter + "s")
+                if (_this.counter == 0) { clearInterval(_this.timer) }
+            }, 1000)
+        }
+    }
+}
 
+class ProgressIndicator {
+    constructor(game) {
+//        console.log(game.footer.text.worldPosition.y)
+//        this.stars = game.add.sprite(game.footer.box.right - 170, game.footer.box.top + 46, 'stars')
+//        this.stars.anchor.set(0.5)
+//        this.stars.frame = game.progress || 0
+        
+        this.next = game.add.button(game.footer.box.centerX + 300,535, 'betButtons', function(){
+            game.bet = null
+            game.posgraph.resetGraph()
+            game.velgraph.resetGraph()
+            clearInterval(game.race);
+            clearInterval(game.finish)
+            game.playerone.animations.stop(null, true);
+            game.playertwo.animations.stop(null, true);
+            game.groups.menuGroup.scale.setTo(0);
+            game.state.restart();
+        });
+        
+        this.style = {
+            font: '14px OpenSans',
+            fill: 'white',
+            align: "center",
+        }
+        this.next.scale.set(1.2)
+        this.next.anchor.set(0.5)
+        this.next.tint = 0x72A5A5;
+        this.next.text = game.add.text(0, 0, 
+            game.en.nextrace,
+            this.style );
+        this.next.addChild(this.next.text)
+        this.next.text.anchor.set(.5)
+//        game.world.bringToTop(this.next.text)
+        this.next.visible = false;
+        
+        var _this = this;
+        this.next.events.onInputOver.add(function(){
+            _this.next.tint = 0x619391;
+        }, this);   
+        this.next.events.onInputOut.add(function(){
+            _this.next.tint = 0x72A5A5;
+        }, this);
+        
+    }        
+}
 
-     }
+//class Title extends Phaser.Sprite {
+//    constructor(x, y, game) {
+//        super(game, x, y, 'title-plate');
+//        game.add.existing(this);
+//    }
+//}
+
+class Speech extends Phaser.Sprite {
+    constructor(player, game) {
+    super(game, player.right + 80, player.y + 28, 'speech');
+        game.add.existing(this);
+
+        this.style = {
+            font: '16px OpenSans',
+            fill: 0x597c9e,
+            align: "center",
+            wordWrap : true,
+            wordWrapWidth : this.width - 16
+        };
+        this.anchor.setTo(0.5);
+        this.text = new Phaser.Text(game, 0, 0, '', this.style);
+        //puts the label in the center of the button
+        this.text.anchor.setTo(0.5);
+        this.addChild(this.text);
+    }
+}
+
+class TextBox extends Phaser.Sprite {
+    constructor(x, y, game) {
+        super(game, x, y, 'intro-box');
+        game.add.existing(this);
+        this.style = {
+            font: '21px OpenSans',
+            fill: 'black',
+            align: "center",
+            wordWrap : true,
+            wordWrapWidth : this.width - 25
+        };
+        this.anchor.setTo(0.5);
+        this.text = new Phaser.Text(game, 0, -this.height*.05, '', this.style);
+        this.text.anchor.setTo(0.5, 0.5);
+        this.addChild(this.text);
+    }
+    
 }
 
 
 
-class Pointer extends Phaser.Sprite {
-    constructor(obj) {
-        super(game,obj.x,obj.y-100,'pointer');
-        game.add.existing(this);
-        this.anchor.set(.5)
-        this.angle = 20;
-        game.world.bringToTop(this)
+class Flasher {
+    constructor(sprite) {
+        this.sprite = sprite
+        sprite.initialTint = sprite.tint;
         this.getAttention()
-        this.state = game.state.getCurrentState()
-        if ( this.state.key == "PlayLevel") {
-            var _this = this;
-            playLevel.input.onDown.add(function() {
-                    clearInterval(_this.blink)
-                    clearInterval(_this.grow)
-                    _this.destroy()
-                }, playLevel)
-        }
+//        this.state = game.state.getCurrentState()
+//        if (this.state.key == "PlayLevel") {
+        var _this = this;
+        playLevel.input.onDown.add(function() {
+//            console.log(_this.sprite.visible)
+            if (_this.sprite.visible){
+                clearInterval(_this.sprite.blink)
+    //                clearInterval(_this.grow)
+                _this.sprite.tint = _this.sprite.initialTint || 0xFFFFFF;
+    //                _this.destroy()
+            }
+        }, playLevel)
+//        }
 
     }
-
     getAttention() {
-        var _this = this
-        // _this.blink = setInterval(function(){
-        //         _this.visible = !_this.visible;
-        //     }, 500)
-
-        _this.scaleIncrement = .01
-        _this.scaleValue = 1
-        _this.grow = setInterval(function(){
-                _this.scaleValue += _this.scaleIncrement
-                _this.scale.set(_this.scaleValue)
-                if (_this.scale.x > 1.09) {
-                   _this.scaleIncrement *= -1
-                } else if (_this.scale.x < 0.91) {
-                    _this.scaleIncrement *= -1
-                }
-            }, 50)
+        var _this = this.sprite
+//        _this.scaleIncrement = .01
+//        _this.scaleValue = 1
+//        _this.grow = setInterval(function(){
+//                _this.scaleValue += _this.scaleIncrement
+//                _this.scale.set(_this.scaleValue)
+//                if (_this.scale.x > 1.09) {
+//                   _this.scaleIncrement *= -1
+//                } else if (_this.scale.x < 0.91) {
+//                    _this.scaleIncrement *= -1
+//                }
+//            }, 50)
         _this.flipper = true
         _this.blink = setInterval(function(){
             if (_this.flipper) {
-                _this.tint = 0xFF9999
+                _this.tint = _this.initialTint || 0xFFFFFF
             } else { 
-                _this.tint = 0xFFFFFF 
+                if (_this.initialTint == 0xFFFFFF){
+                    _this.tint = 0xFFFFBB
+                } else {
+                    _this.tint = _this.initialTint - 40;
+                }
             }
-            // console.log(_this.tint)
             _this.flipper =! _this.flipper
             
-        }, 220)
+        }, 350 + Math.random()*100)
+    }
+} 
+
+class InfoBox extends Phaser.Sprite {
+    constructor(x, y, game, txt) {
+        super(game, x, y, 'infobox');
+        game.add.existing(this);
+        this.game = game
+        this.anchor.set(0.5)
+        this.style = {
+            font: '14px OpenSans',
+            fill: 'black',
+            align: "center",
+            wordWrap : true,
+            wordWrapWidth : this.width - 20
+        };
+        this.text = new Phaser.Text(game, 0, -this.height*.03, '', this.style);
+        this.text.anchor.setTo(0.5, 0.5);
+        this.addChild(this.text);
+        this.preserve = false
+        var _this = this;
+        playLevel.input.onDown.add(function() {
+            if (_this.visible && !_this.preserve){
+                if (_this.graphics != null) {
+                _this.graphics.destroy()
+                }
+                _this.destroy()
+            }
+        }, playLevel)
+    }
+    drawLine(side, locx, locy) {
+        var x, y;
+        if (side == 'top') {
+            x = this.centerX;
+            y = this.top + 5;
+        } else if (side == 'left') {
+            x = this.left + 5
+            y = this.centerY
+        } else if (side == 'bottom') {
+            x = this.centerX;
+            y = this.bottom - 5;
+        } else if (side == 'right') {
+            x = this.right - 5
+            y = this.centerY
+        }
+        console.log(locx)
+        this.graphics = this.game.add.graphics(0,0);
+        this.graphics.beginFill(0xFF3300);
+        this.graphics.lineStyle(3, 0x8d99b9, 1);
+        this.graphics.moveTo(x,y);
+
+        this.graphics.lineTo(locx, locy);
+        this.graphics.endFill();
+        
+
+        
+    }
+}
+
+class Countdown {
+    constructor(game) {
+        this.game = game;
+        this.style = {
+            font: '50px OpenSans',
+            fill: 'red',
+            align: "center",
+            'wordWrap' : false,
+            stroke : 'black',
+            strokeThickness : 2,
+        }
+
 
     }
+    countdown(){
+        var _this = this;
+//        this.timer = setTimeout(function(){
+//            _this.game.add.tween(_this.txt.scale).to({ x: 0, y: 0})
+//            _this.txt.setText('2')
+//            _this.timer = setTimeout(function(){
+//                _this.txt.scale.set(1)
+//                
+//            }, 1000)
+//        }, 1000)
+        console.log('begin countdown')
+        this.counter = 0
+        this.scaler = true
+        this.txt = this.game.add.text(this.game.track.centerX, this.game.track.centerY, '3', this.style)
+        this.txt.anchor.set(.5)
+        this.game.world.bringToTop(this.txt)
+        this.timer = setInterval(function(){
+            if (_this.scaler) {
+                _this.txt.scale.set(1 - ((_this.counter % 10) * .1))
+            }
+            if (_this.counter == 10) {
+                _this.txt.scale.set(1)
+                _this.txt.setText('2')
+                
+                
+            }
+            if (_this.counter == 20) {
+                _this.txt.scale.set(1)
+                _this.txt.setText('1')
+            }
+            if (_this.counter == 30) {
+                _this.scaler = false
+                _this.txt.scale.set(1)
+                _this.txt.addColor('#00FF00', 0)
+                _this.txt.setText(_this.game.en.go)
+            }
+            if (_this.counter == 40) {
+                _this.counter = 0;
+                _this.txt.visible = false;
+                clearInterval(_this.timer)
+            }
+            _this.counter++
+                
+        }, 100)
 
-} 
+    
+    }
+    
+}
+
+class ScorePlate {
+    constructor(game){
+        this.game = game;
+        this.box = game.add.sprite(170, 35, 'score-plate')
+        this.box.anchor.set(.5)
+        this.stars = game.add.sprite(this.box.centerX + 30, this.box.centerY - 11, 'stars')
+        this.stars.anchor.set(.5)
+        this.stars.scale.set(.6)
+        this.stars.frame = game.progress || 0
+        this.style = {
+            font: '16px OpenSans',
+            fill: 'black',
+            align: "center",
+            'wordWrap' : false,
+        }
+        
+        this.playertwoScore = game.add.text(this.box.centerX + 30, this.box.centerY + 12, game.score, this.style )
+        this.playertwoScore.anchor.set(.5)
+    }
+    
+    update() {
+        this.stars.frame = this.game.progress
+        this.playertwoScore.setText(this.game.score)
+        this.flasher = new Flasher(this.box)
+    }
+}

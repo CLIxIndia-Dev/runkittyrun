@@ -1,141 +1,85 @@
 loading = {
     preload: function() {
-        game.loadJSONTilemap('assets/level1.json');
-        game.load.image('levelmenu', 'assets/level-buttons-90x630.png');
+        this.game.load.spritesheet('cat', 'assets/cat.png', 80, 80);
+        this.game.load.spritesheet('mouse', 'assets/mouse.png', 80, 80);
+        this.game.load.image('box', 'assets/box.png');
+        this.game.load.image('title-plate', 'assets/title-plate.png');
+        this.game.load.image('track', 'assets/track.png');
+        this.game.load.image('minimouse', 'assets/minimouse.png');
+        this.game.load.image('minicat', 'assets/minicat.png');
+        this.game.load.image('logo', 'assets/logo.png');
+        this.game.load.image('logo-full', 'assets/logo-full.png');
+        this.game.load.image('clixlogo', 'assets/clixlogo.png');
+        this.game.load.image('logo-load', 'assets/logo-load.png');
+        this.game.load.image('loadscreen', 'assets/loadscreen.png');
         
-        game.load.image('roadmarker', 'assets/roadmarker.png');
-        game.load.image('whiteroadmarker', 'assets/whiteroadmarker.png');
-        game.load.image('road', 'assets/road.png', 64, 64);  //track image
-        game.load.spritesheet('cat', 'assets/cat.png', 64, 64);
-        game.load.spritesheet('mouse', 'assets/mouse.png', 64, 64, 8);
-        game.load.spritesheet('robot', 'assets/robot.png', 64, 64, 10);
-        game.load.image('finish', 'assets/finish.png');
-        game.load.image('sign', 'assets/sign.png');
-        game.load.image('slider', 'assets/slider.png', 64, 128);
-        game.load.image('handle', 'assets/handle.png', 64, 32);
-        game.load.image('lock', 'assets/lock.png', 64, 64);
-        game.load.spritesheet('bet', 'assets/betbuttons.png', 192, 64, 4);
-        game.load.spritesheet('stars', 'assets/stars.png', 192, 64, 4);
-        game.load.spritesheet('buttons', 'assets/buttons.png', 150, 48); 
-        // game.load.spritesheet('levelmenu', 'assets/level-buttons-90x360.png', 90, 360)
-        game.load.image('arrows', 'assets/arrows.png',64, 128)
-        game.load.image("loadscreen", "assets/loadscreen.png");
-        game.load.image("logo", "assets/logo.png");
-        game.load.image('levelselectscreen', 'assets/levelselectscreen.png')
-        game.load.image('levelbutton', 'assets/levelbutton.png')
-        game.load.image('minimouse', 'assets/minimouse.png')
-        game.load.image('minicat', 'assets/minicat.png')
-        game.load.image('rectangle', 'assets/rectangle.png')
-        game.load.image('logo', 'assets/logo.png')
-        game.load.image('plus', 'assets/plus.png')
-        game.load.image('minus', 'assets/minus.png')
-        game.load.image('speedometer', 'assets/speedometer.png')
-        game.load.image('hourglass', 'assets/hourglass.png')
-        game.load.image('pointer', 'assets/pointer.png')
-        game.load.image('ending', 'assets/ending.png')
-        game.load.image('clixlogo', 'assets/clixlogo.png')
-        game.load.image('stage', 'assets/stage.png')
-        game.load.image('speech', 'assets/speech.png')
-        game.load.spritesheet('tutorial_graph', 'assets/tutorial_graph.png', 420, 171);
-        game.load.spritesheet('tutorial_delay', 'assets/tutorial_delay.png', 142, 119);
-        game.load.spritesheet('tutorial_lever', 'assets/tutorial_lever.png', 93, 235);
-        game.load.image('tutorial_bet', 'assets/tutorial_bet.png');
-        game.load.image('graybox', 'assets/graybox.png');
-        // game.time.advancedTiming = true
+        this.game.load.image('dropdown_button', 'assets/dropdown_button_bnw.png');
+        this.game.load.image('menu_button', 'assets/menu_button_bnw.png');
+                
+        this.game.load.image('speed-box', 'assets/speed-box.png');
+        this.game.load.image('speed-button', 'assets/speed-button.png');
+        this.game.load.image('speed-displaybox', 'assets/speed-displaybox.png');
+        this.game.load.image('speed-indicator', 'assets/speed-indicator.png');
+        this.game.load.image('speed-slider', 'assets/speed-slider.png');
+
+        this.game.load.spritesheet('betButtons', 'assets/betButtons.png', 97, 36);
         
+        this.game.load.image('footer', 'assets/footer.png');
+
+        this.game.load.image('delay-box', 'assets/delay-box.png');
+        this.game.load.image('delay-minus', 'assets/delay-minus.png');
+        this.game.load.image('delay-plus', 'assets/delay-plus.png');
+        this.game.load.image('delay-display', 'assets/delay-display.png');
+
+        this.game.load.image('sideplate-p1', 'assets/sideplate-p1.png');
+        this.game.load.image('sideplate-p2', 'assets/sideplate-p2.png');
+
+        this.game.load.image('legend', 'assets/legend.png');
+        
+        this.game.load.image('background', 'assets/background.png');
+
+
+        this.game.load.spritesheet('stars', 'assets/stars.png', 96, 32);
+        this.game.load.image('intro-box', 'assets/intro-box.png');
+        this.game.load.image('speech', 'assets/speech.png');
+        this.game.load.image('infobox', 'assets/infobox.png');
+        this.game.load.image('menubox', 'assets/menubox.png');
+
+        this.game.load.image('score-plate', 'assets/score-plate.png');
+        this.game.load.image('star', 'assets/star.png')
+        
+        this.game.load.image('ending', 'assets/ending.png')
+        
+
         
         // // http://phaser.io/docs/2.4.4/Phaser.ScaleManager.html#scaleMode  
         // game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL
         
-        game.scale.setUserScale(.85, .85, 0, 0)
-        game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
-        
+//        this.game.scale.setUserScale(.85, .85, 0, 0)
+//        this.game.scale.scaleMode = Phaser.ScaleManager.USER_SCALE;
     },
-  
     create: function() {
-        game.state.onStateChange.add(function (state) { console.log(state)}) 
-              
-        loadscreen = game.add.image(0, 0, 'loadscreen');
-        logo = game.add.sprite(200, 250, 'logo');
-        logo.scale.setTo(1.1)
-        
-        clix = game.add.sprite(w/2, 60, 'clixlogo');
-        clix.scale.setTo(.5)
-        clix.anchor.setTo(.5)
-        this.copyright = game.add.text(w/2, 110, '©2016 MIT unless otherwise specified.\nEmail contact@clix.tiss.edu for more information',{
+        this.game.state.onStateChange.add(function (state) { console.log(state);}); 
+    
+        this.game.background = this.game.add.tileSprite(0, 0, this.game.width, this.game.height, 'background');
+
+        this.logo =  this.game.add.sprite(this.game.width/2, 300, 'logo-full');
+        this.logo.anchor.setTo(0.5);
+        this.clix = this.game.add.sprite(this.game.width/2, 425, 'clixlogo');
+        this.clix.anchor.setTo(0.5);
+        this.clix.scale.setTo(0.5);
+        this.copyright = this.game.add.text(this.game.width/2, this.clix.bottom + 40, '©2017 MIT unless otherwise specified.\nEmail contact@clix.tiss.edu for more information',{
             font: '15px Arial',
             fill: 'black',
             fontWeight: 'bold',
             align: "center",
-        })
-        this.copyright.anchor.set(.5)
-        // this.copyright.stroke = "#000";
-        // this.copyright.strokeThickness = 10;
+        });
+        this.copyright.anchor.set(0.5);
         
-        // ©MIT\nPLACEHOLDER\nCC\nCLIX\nLOGO
-        
-
-        
-        game.load.start()       
-        if (debug) { game.time.advancedTiming = true; }
-        
-         setTimeout(function(){
-                game.state.start("Tutorial")
+        var _this = this;
+        setTimeout(function() {
+                _this.game.state.start("PlayLevel");
             }, 4000);
         
-        
-        
-        game.report = function(event, params) {
-            data = {
-                "app_name": "biomechanic",
-                "event_type": event,
-                "params": params,
-            }
-            console.log(data)
-            gameReporter.submitData('/api/appdata/', data)
-        }
-        
-    },
-    
-    update: function() {    
-       
     }
-      
 };
-
-
-class GameReporter {
-	constructor(data) {
-		this.session_id = this.getCookie('session_uuid')
-	}
-
-
-	submitData(url, data) {
-		var xhr = new XMLHttpRequest();
-
-		var data_string = {}
-		data_string['session_id'] = this.getCookie('session_uuid');
-		for (var key in data) {data_string[key] = data[key];};
-		data_string = JSON.stringify(data_string);
-
-		xhr.open('POST', url, true);
-		xhr.setRequestHeader("Content-Type","application/json");
-		xhr.send(data_string);
-		return xhr.response
-	}
-
-	getCookie(cname) {
-		var name = cname + "=";
-		var ca = document.cookie.split(';');
-		for(var i=0; i<ca.length; i++) {
-			var c = ca[i];
-			while (c.charAt(0)==' ') c = c.substring(1);
-			if (c.indexOf(name) == 0) return c.substring(name.length,c.length);
-		}
-        console.log('no uuid found')
-	}
-
-
-}
-
-var gameReporter = new GameReporter()
