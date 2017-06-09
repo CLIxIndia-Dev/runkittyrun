@@ -76,7 +76,7 @@ class BioMechanic {
             introTextBoxB : "In Run Kitty Run, you are training Kitty to be the best mouse catcher! \nPlayer 1: On each level, you have different tools to control Kitty. Kitty needs to catch Mouse at the finish line in every race. Catching the Mouse early does not count as success. \nPay Attention: Kitty and Mouse can have different start times and speeds.",
             introTextBoxC : "Each time Kitty catches Mouse at the finish line, Player 1 earns a star.",
             introTextBoxD : "After Player 1 is ready to race, PLAYER 2 will make a Bet. ",
-            introTextBoxE : "Each tie race earns a star.\nThree stars advances to the next level.\n Scores reset with each new level. Students are encouraged \nto swap who is Player 1 and Player 2.",
+            introTextBoxE : "Each time race earns a star.\nThree stars advances to the next level.\n Scores reset with each new level. Students are encouraged \nto swap who is Player 1 and Player 2.",
             introCatSpeech : "Hmmmmm",
             introMouseSpeech : "You can't catch me!",
             
@@ -115,7 +115,10 @@ class BioMechanic {
             ontime : "ON TIME",
             soon : "EARLY",
             
-            
+            level : "LEVEL",
+            tutorial : "TUTORIAL",
+
+            time : "Time (s)",
             great : "Great!",
             unknown : "???",
             continue : "CONTINUE",
@@ -125,11 +128,6 @@ class BioMechanic {
             speed : "Speed (m/s)",
             go : "Go!",
             restart : "RESTART",
-            
-            
-            
-            
-            
         }
     }
     start() {

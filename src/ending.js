@@ -8,12 +8,13 @@ ending = {
         this.logo =  this.game.add.sprite(this.game.width/2, 170, 'logo-full');
         this.logo.anchor.setTo(0.5);
         
-        this.text = this.game.add.text(500, 380, 'Nice work!\nYou have completed all 7 levels.\nThanks for playing!',{
-            font: '44px OpenSans',
+        this.text = this.game.add.text(500, 380, this.game.en.gamefinish,{
+            font: '44px',
             fill: '#b6cae8',
             align: 'center',
         })
-		this.text.anchor.set(.5)
+        this.text.font = '44px ' + this.game.fontStyle
+        this.text.anchor.set(.5)
         this.text.stroke = "#000";
         this.text.strokeThickness = 8;
         
@@ -29,7 +30,7 @@ ending = {
 
         this.btn.anchor.set(.5)
         this.btn.style = {
-            font: '16px OpenSans',
+            font: '16px',
             fill: 'white',
             align: "center",
             'wordWrap' : false,

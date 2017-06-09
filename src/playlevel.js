@@ -178,7 +178,7 @@ playLevel = {
                                         }, this);   
                                         _this.game.next.text = _this.game.add.text(0, 0, 
                                             _this.game.en.continue,
-                                            {font: '16px OpenSans', fill: 'white'}
+                                            {font: '16px', fill: 'white'}
                                         );
                                          _this.game.next.text.anchor.set(.5)
                                          _this.game.next.addChild( _this.game.next.text);
@@ -196,7 +196,7 @@ playLevel = {
                                 }, this);   
                                 _this.game.next.text = _this.game.add.text(0, 2, 
                                     _this.game.en.ok,
-                                    {font: '24px OpenSans', fill: 'white'}
+                                    {font: '24px', fill: 'white'}
                                 );
                                  _this.game.next.text.anchor.set(.5)
                                  _this.game.next.addChild( _this.game.next.text);
@@ -256,7 +256,7 @@ playLevel = {
                                 }, this);   
                                 _this.game.next.text = _this.game.add.text(0, 0, 
                                     _this.game.en.continue,
-                                    {font: '16px OpenSans', fill: 'white'}
+                                    {font: '16px', fill: 'white'}
                                 );
                                  _this.game.next.text.anchor.set(.5)
                                  _this.game.next.addChild( _this.game.next.text);
@@ -314,7 +314,7 @@ playLevel = {
             }, this);   
             game.next.text = game.add.text(0, 0, 
                 game.en.continue,
-                {font: '16px OpenSans', fill: 'white'}
+                {font: '16px', fill: 'white'}
             );
              game.next.text.anchor.set(.5)
              game.next.addChild(game.next.text);
@@ -324,7 +324,7 @@ playLevel = {
         var partE = function(game){
             game.introText.text.setText(game.en.introTextBoxE)
             game.star.visible = true
-            game.star.x += 35
+            game.star.x += 70
             game.star.y -= 90
             game.next.destroy();
             game.next = game.add.button(
@@ -343,7 +343,7 @@ playLevel = {
             }, this);   
             game.next.text = game.add.text(0, 0, 
                 game.en.continue,
-                {font: '16px OpenSans', fill: 'white'}
+                {font: '16px', fill: 'white'}
             );
              game.next.text.anchor.set(.5)
              game.next.addChild(game.next.text);
