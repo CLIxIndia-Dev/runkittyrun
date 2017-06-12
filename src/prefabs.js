@@ -66,6 +66,7 @@ class GameReporter {
                 // ex: params : {level : 2, player_velocity : 30, computer_velocity : 20 }
                 "params": params,
             };
+//            this.submitData('/api/appdata/', data);
             this.submitData(data);
         
         }
@@ -80,11 +81,10 @@ class Menu {
 //          'fill': 'black'
 //        };
         var _this = this;
-
         var levnum;
         if (game.currentLevel === 0) {
-            levnum = "TUTORIAL";
-        } else { levnum = "LEVEL " + game.currentLevel; }
+            levnum = game.en.tutorial;
+        } else { levnum = game.en.level + " " + game.currentLevel; }
         this.levelButton = new LabelButton(game,
             game.width / 2 + 280, 30,
             "dropdown_button",
@@ -93,7 +93,7 @@ class Menu {
             function(){
                 _this.toggleMenu(_this.game);
             });
-        this.levelButton.button.label.addColor('white', 0)
+        this.levelButton.button.label.addColorHack('white', 0)
         
         game.groups.menuGroup = game.add.group();
         
@@ -135,8 +135,8 @@ class Menu {
 
         var levnum;
         if (i === 0) {
-            levnum = "TUTORIAL";
-        } else { levnum = "LEVEL " + i; }
+            levnum = game.en.tutorial;
+        } else { levnum = game.en.level + " " + i; }
         
         var posX = ( i%2 == 0 ? this.levelButton.button.x - 70 : this.levelButton.button.x + 70)
         var posY = ( i%2 == 0 ? 70 + 19*i : 70 + 19*(i-1))
@@ -179,11 +179,19 @@ class LabelButton {
         this.button = game.add.button(x, y, key, callback);
         this.button.tint = colors[0];
         this.style = {
-          'font': '17px OpenSans',
+          'font': '13px',
           'fill': '#4976bf',
           'align': "center"
         };
         this.button.anchor.setTo(0.5);
+
+        // hackey bit to override the add color method. 
+        Phaser.Text.prototype.addColorHack = function(str){
+            this.style.fill = str
+            this.setText(this.text)
+        }
+        
+        
         this.button.label = new Phaser.Text(game, 0, 0, label, this.style);
         //puts the label in the center of the button
         this.button.label.anchor.setTo(0.75, 0.5);
@@ -280,7 +288,7 @@ class VelocityController extends Phaser.Sprite {
         this.display = game.add.sprite(this.increaseButton.centerX, this.slider.centerY, 'speed-displaybox')
         this.display.anchor.set(.5)
         this.text = game.add.text(this.display.centerX, this.display.centerY, this.player.speed + "m/s", {
-            font: '45px OpenSans',
+            font: '45px',
             fill: 'black',
             align: "center"
 		});
@@ -381,6 +389,7 @@ class VelocityController extends Phaser.Sprite {
 class Graph extends RGraph.Line {
     constructor(ylabel, playerone, playertwo, id, game) {
 
+        var xLabel = game.en.time
         var data = [new Array(30), new Array(30)]
         if (id == "posgraph") {
             var graphdata = [positionData(game.playerone), positionData(game.playertwo)];
@@ -425,7 +434,7 @@ class Graph extends RGraph.Line {
                 numyticks: 6,
                 ymax: 60,
                 ymin: 0,
-                titleXaxis: "Time (s)",
+                titleXaxis: xLabel,
                 titleXaxisSize: 11,
                 titleYaxis: ylabel,
                 titleYaxisSize: 8,
@@ -561,7 +570,7 @@ class BetBox {
         this.box.width = 1024;
         this.box.height = 100;
         this.style = {
-            font: '22px OpenSans',
+            font: '22px',
             fill: 'white',
             align: "center",
         }
@@ -643,16 +652,18 @@ class BetBox {
                 
                 var feedback = function(a,b, game) {
                     game.footer.text.setText(b)
+                    game.footer.text.setTe
                     game.footer.text.visible = true
-                    game.footer.text.addColor('#FFFF00', 0)
+                    game.footer.text.addColorHack('#FFFF00', 0)
                     var _a = a
                     game.fdbk = setTimeout(function(){
-                        game.footer.text.addColor('#FFFFFF', 0)
+                        game.footer.text.addColorHack('#FFFFFF', 0)
                         game.footer.texttwo.setText(_a)
+                        game.footer.texttwo.set
                         game.footer.texttwo.visible = true
-                        game.footer.texttwo.addColor('#FFFF00', 0)
+                        game.footer.texttwo.addColorHack('#FFFF00', 0)
                         game.fdbk = setTimeout(function(){
-                            game.footer.texttwo.addColor('#FFFFFF', 0)
+                            game.footer.texttwo.addColorHack('#FFFFFF', 0)
                             if (game.currentLevel > game.levels) {
                                 game.add.button(game.footer.progressIndicator.next.x, game.footer.progressIndicator.next.y, 'betButtons', function(){
                                     game.currentLevel = 0
@@ -848,7 +859,7 @@ class BetBox {
             btn.tint = colors[0];
         }, this);
         btn.style = {
-            font: '16px OpenSans',
+            font: '16px',
             fill: 'white',
             align: "center",
             'wordWrap' : false,
@@ -881,7 +892,7 @@ class ContinueButton extends Phaser.Button{
         this.tint = 0x72A5A5;
         this.flasher = new Flasher(this)
         this.style = {
-            font: '14px OpenSans',
+            font: '14px',
             fill: 'white',
             align: "center",
 
@@ -950,7 +961,7 @@ class Footer {
         this.box.top = game.graphDisplay.bottom + 10;
         
         this.style = {
-            font: '28px OpenSans',
+            font: '15px',
             fill: 'white',
             align: "center",
             wordWrap : true,
@@ -1062,7 +1073,7 @@ class DelayController extends Phaser.Sprite {
         this.display.anchor.set(.5)
         
         this.text = game.add.text(this.display.centerX, this.display.centerY, this.player.delay + "s", {
-            font: '45px OpenSans',
+            font: '45px',
             fill: 'black',
             align: "center"
 		});
@@ -1089,12 +1100,12 @@ class SidePlate {
         this.box.anchor.set(0.5)
 //        this.box.tint = color;
         this.delay = game.add.text(this.box.centerX + 2, this.box.centerY - 22, player.delay + 's', {
-            font: '16px OpenSans',
+            font: '16px ',
             fill: textcolor,
             align: "left"
 		});
         this.speed = game.add.text(this.box.centerX + 2, this.box.centerY + 2, player.speed + 'm/s', {
-            font: '16px OpenSans',
+            font: '16px',
             fill: textcolor,
             align: "left"
 		});
@@ -1111,7 +1122,7 @@ class SidePlate {
         var _this = this;
         this.counter = this.player.delay
         if (this.player.delay > 0) {
-            this.delay.addColor('#FF0000', 0)
+            this.delay.addColorHack('#FF0000', 0)
         }
         if (this.counter > 0) {
             this.timer = setInterval(function() {
@@ -1144,7 +1155,7 @@ class ProgressIndicator {
         });
         
         this.style = {
-            font: '14px OpenSans',
+            font: '14px',
             fill: 'white',
             align: "center",
         }
@@ -1183,7 +1194,7 @@ class Speech extends Phaser.Sprite {
         game.add.existing(this);
 
         this.style = {
-            font: '16px OpenSans',
+            font: '16px',
             fill: 0x597c9e,
             align: "center",
             wordWrap : true,
@@ -1202,7 +1213,7 @@ class TextBox extends Phaser.Sprite {
         super(game, x, y, 'intro-box');
         game.add.existing(this);
         this.style = {
-            font: '21px OpenSans',
+            font: '21px',
             fill: 'black',
             align: "center",
             wordWrap : true,
@@ -1275,7 +1286,7 @@ class InfoBox extends Phaser.Sprite {
         this.game = game
         this.anchor.set(0.5)
         this.style = {
-            font: '14px OpenSans',
+            font: '13px',
             fill: 'black',
             align: "center",
             wordWrap : true,
@@ -1328,7 +1339,7 @@ class Countdown {
     constructor(game) {
         this.game = game;
         this.style = {
-            font: '50px OpenSans',
+            font: '50px',
             fill: 'red',
             align: "center",
             'wordWrap' : false,
@@ -1371,7 +1382,7 @@ class Countdown {
             if (_this.counter == 30) {
                 _this.scaler = false
                 _this.txt.scale.set(1)
-                _this.txt.addColor('#00FF00', 0)
+                _this.txt.addColorHack('#000080', 0)
                 _this.txt.setText(_this.game.en.go)
             }
             if (_this.counter == 40) {
@@ -1398,7 +1409,7 @@ class ScorePlate {
         this.stars.scale.set(.6)
         this.stars.frame = game.progress || 0
         this.style = {
-            font: '16px OpenSans',
+            font: '16px',
             fill: 'black',
             align: "center",
             'wordWrap' : false,
