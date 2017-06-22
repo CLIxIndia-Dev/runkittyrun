@@ -7,7 +7,7 @@ class LanguageJsLoader{
     constructor(){
         this.lang = this.getAllUrlParams.lang
         if(this.lang==window.undefined)
-        	this.lang='en'
+        	this.lang='hin'
     }
     load(){
     	var filename = 'src/lang/game-'+this.lang+'.js'
