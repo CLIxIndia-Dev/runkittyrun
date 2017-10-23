@@ -336,8 +336,9 @@ class VelocityController extends Phaser.Sprite {
 
                 _this.updateIndicator()
                 _this.updateDisplay()
-                _this.game.velgraph.fullGraph(_this.game)
                 _this.game.posgraph.fullGraph(_this.game)
+                _this.game.velgraph.fullGraph(_this.game)
+                
                 _this.player.sideplate.update()
                 _this.report()
                 
@@ -357,8 +358,9 @@ class VelocityController extends Phaser.Sprite {
 
                 _this.updateIndicator()
                 _this.updateDisplay()
-                _this.game.velgraph.fullGraph(_this.game)
                 _this.game.posgraph.fullGraph(_this.game)
+                _this.game.velgraph.fullGraph(_this.game)
+                
                 _this.player.sideplate.update()
                 _this.report()
             }
@@ -404,8 +406,6 @@ class Graph extends RGraph.Line {
             id: id,
             options: {
                 gutterLeft: 30,
-                // gutterRight: 35,
-                // gutterTop: 35,
                 gutterBottom: 30,
                 backgroundGridAutofitNumvlines: 6,
                 backgroundGridAutofitNumhlines: 12,
@@ -443,6 +443,7 @@ class Graph extends RGraph.Line {
                 gutterLeft: 30,
                 stepped: stepped,
                 backgroundGridAutofitNumhlines: 6,
+               
                 // numticks: 2
                 // adjustable: true
             }
@@ -578,7 +579,6 @@ class BetBox {
             game.en.betBox,
             this.style );
         this.text.anchor.set(.5)
-//        this.box.addChild(this.text);
         
         game.groups.betButtons = game.add.group();
         
