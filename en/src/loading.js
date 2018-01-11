@@ -1,5 +1,10 @@
 loading = {
     preload: function () {
+        
+        if (window.location.hostname == "web.mit.edu" && navigator.userAgent.indexOf("Chrome") == -1) {
+            alert('You are on a development server.\nRunKittyRun is written for Chrome49+.\nPlease change to a supported browser.')
+        }
+        
         this.game.load.spritesheet('cat', 'assets/cat.png', 80, 80);
         this.game.load.spritesheet('mouse', 'assets/mouse.png', 80, 80);
         this.game.load.image('box', 'assets/box.png');

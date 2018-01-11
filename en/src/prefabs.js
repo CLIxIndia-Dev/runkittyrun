@@ -1,6 +1,8 @@
 class GameReporter {
     constructor() {
         this.uuid = this.getCookie('session_uuid');
+        this.params = new URLSearchParams(location.search)
+        this.api = (this.params.get('api') || '/api/v1/logging/genericlog')
     }
 
     submitData(data) {
@@ -22,7 +24,7 @@ class GameReporter {
         var qbank = { data: data_string }
         qbank = JSON.stringify(qbank);
 
-        xhr.open('POST', '/api/v1/logging/genericlog', true); // True means async
+        xhr.open('POST', this.api, true); // True means async
         xhr.setRequestHeader("x-api-proxy", this.uuid)
         xhr.setRequestHeader("Content-Type", "application/json");
         xhr.send(qbank);
@@ -526,22 +528,22 @@ class Graph extends RGraph.Line {
             this.line.original_data[1] = this.graphdata[1]
             this.redraw()
         } else {
-            this.line.original_data[0] = new Array(30)
-            this.line.original_data[1] = new Array(30)
+            this.line.original_data[0] = new Array(31)
+            this.line.original_data[1] = new Array(31)
             this.redraw()
         }
     }
 
     liveGraph() {
 
-        this.updateLine(); // once for t=0
-        this.updateLine(); // once because setinterval doesn't fire until the delay
-        this.plotter = setInterval(this.updateLine.bind(this), 1000)
+//        this.updateLine(); // once for t=0
+//        this.updateLine(); // once because setinterval doesn't fire until the delay
+//        this.plotter = setInterval(this.updateLine.bind(this), 1000)
     }
 
 
     updateLine() {
-        if (this.counter <= 30) {
+        if (this.counter < 30) {
             this.line.original_data[0][this.counter] = this.graphdata[0][this.counter]
             this.line.original_data[1][this.counter] = this.graphdata[1][this.counter]
             this.redraw()
@@ -557,7 +559,7 @@ class Graph extends RGraph.Line {
     }
 
     resetGraph() {
-        clearInterval(this.plotter)
+//        clearInterval(this.plotter)
         RGraph.clear(this.line.canvas)
 
     }
@@ -679,15 +681,27 @@ class BetBox {
 
                 // var delay = game.playertwo.delay * 1000;
                 var normalize =  (720 / (60 * 100)); // 7
-
-                if (game.settings.livePlot) {
-                    game.posgraph.liveGraph()
-                    game.velgraph.liveGraph()
-                }
+//
+//                if (game.settings.livePlot) {
+//                    game.posgraph.liveGraph()
+//                    game.velgraph.liveGraph()
+//                }
 
                 
                 game.racecounter = 0
                 game.race = setInterval(function () {
+                    
+                    if (game.settings.livePlot) {
+                        if (game.racecounter % 1000 == 0) {
+                            if (game.racecounter == 0) {
+                                game.posgraph.updateLine()
+                                game.velgraph.updateLine()
+                            }
+                            game.posgraph.updateLine()
+                            game.velgraph.updateLine()
+                        }
+                    }
+
 
                     if (game.bet == null) {
                         game.groups.betButtons.visible = false;
@@ -711,13 +725,20 @@ class BetBox {
                     var _game = game;
                     var finish = function (loser, winner) {
                         console.log('finish')
+                        _game.finishcounter = 0
                         _game.finish = setInterval(function () {
                             if (loser.x < winner.x) {
+                                _game.finishcounter += 10
                                 loser.x += loser.speed * normalize;
+                                if (_game.finishcounter % 1000 == 0){
+//                                    console.log(_game.finishcounter)
+                                    game.posgraph.updateLine()
+                                    game.velgraph.updateLine()
+                                }
                             } else {
                                 loser.x = winner.x
-                                //                        console.log(loser.x)
-                                //                        console.log(winner.x)
+                                game.posgraph.updateLine()
+                                game.velgraph.updateLine()
                                 loser.animations.stop(null, true);
                                 clearInterval(_game.finish)
                                 _game.catspeech = new Speech(_game.playertwo, _game)
