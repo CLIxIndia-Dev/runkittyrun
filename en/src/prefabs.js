@@ -407,7 +407,7 @@ class Graph extends RGraph.Line {
         var background = new RGraph.Drawing.Background({
             id: id,
             options: {
-                gutterLeft: 30,
+                gutterLeft: 40,
                 gutterBottom: 30,
                 backgroundGridAutofitNumvlines: 6,
                 backgroundGridAutofitNumhlines: 12,
@@ -439,10 +439,10 @@ class Graph extends RGraph.Line {
                 titleXaxis: xLabel,
                 titleXaxisSize: 11,
                 titleYaxis: ylabel,
-                titleYaxisSize: 8,
-                titleYaxisX: 4,
+                titleYaxisSize: 11,
+                titleYaxisX: 10,
                 ylabelsOffsetx: 2,
-                gutterLeft: 30,
+                gutterLeft: 40,
                 stepped: stepped,
                 backgroundGridAutofitNumhlines: 6,
                 tickmarks: null,
@@ -1431,6 +1431,8 @@ class ScorePlate {
     update() {
         this.stars.frame = this.game.progress
         this.playertwoScore.setText(this.game.score)
-        this.flasher = new Flasher(this.box)
+        if (this.game.currentLevel != 0) {
+            this.flasher = new Flasher(this.box)
+        }
     }
 }
