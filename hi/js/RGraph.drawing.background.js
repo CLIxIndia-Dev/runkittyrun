@@ -1,16 +1,12 @@
-// version: 2016-07-09
+// version: 2017-11-25
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
     * |                                                                                |
     * |                          http://www.rgraph.net                                 |
     * |                                                                                |
-    * | RGraph is dual licensed under the Open Source GPL (General Public License)     |
-    * | v2.0 license and a commercial license which means that you're not bound by     |
-    * | the terms of the GPL. The commercial license starts at just 99 GBP and      |
-    * | you can read about it here:                                                    |
-    * |                                                                                |
-    * |                      http://www.rgraph.net/license                             |
+    * | RGraph is licensed under the Open Source MIT license. That means that it's     |
+    * | totally free to use and there are no restrictions on what you can do with it!  |
     * o--------------------------------------------------------------------------------o
     */
     
@@ -37,15 +33,14 @@
         if (   typeof conf === 'object'
             && typeof conf.id === 'string') {
 
-            var id     = conf.id
-            var canvas = document.getElementById(id);
-
-            var parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
+            var id                        = conf.id,
+                canvas                    = document.getElementById(id),
+                parseConfObjectForOptions = true; // Set this so the config is parsed (at the end of the constructor)
         
         } else {
         
-            var id     = conf;
-            var canvas = document.getElementById(id);
+            var id     = conf,
+                canvas = document.getElementById(id);
         }
 
 
@@ -191,7 +186,6 @@
         */
         if (!this.canvas.__rgraph_aa_translated__) {
             this.context.translate(0.5,0.5);
-
             this.canvas.__rgraph_aa_translated__ = true;
         }
 
@@ -303,7 +297,16 @@
             /**
             * Fire the onbeforedraw event
             */
-            RG.FireCustomEvent(this, 'onbeforedraw');
+            RG.fireCustomEvent(this, 'onbeforedraw');
+
+            
+            /***********************
+            * DRAW BACKGROUND HERE *
+            ***********************/
+            this.gutterLeft   = prop['chart.gutter.left'];
+            this.gutterRight  = prop['chart.gutter.right'];
+            this.gutterTop    = prop['chart.gutter.top'];
+            this.gutterBottom = prop['chart.gutter.bottom'];
     
     
             /**
@@ -317,15 +320,6 @@
                 this.colorsParsed = true;
             }
 
-            
-            /***********************
-            * DRAW BACKGROUND HERE *
-            ***********************/
-            this.gutterLeft   = prop['chart.gutter.left'];
-            this.gutterRight  = prop['chart.gutter.right'];
-            this.gutterTop    = prop['chart.gutter.top'];
-            this.gutterBottom = prop['chart.gutter.bottom'];
-            
             /**
             * Set the shadow
             */
@@ -335,15 +329,15 @@
             /**
             * This installs the event listeners
             */
-            RG.InstallEventListeners(this);
+            RG.installEventListeners(this);
     
 
             /**
             * Fire the onfirstdraw event
             */
             if (this.firstDraw) {
-                RG.fireCustomEvent(this, 'onfirstdraw');
                 this.firstDraw = false;
+                RG.fireCustomEvent(this, 'onfirstdraw');
                 this.firstDrawFunc();
             }
 
@@ -352,13 +346,14 @@
             /**
             * Fire the ondraw event
             */
-            RG.FireCustomEvent(this, 'ondraw');
+            RG.fireCustomEvent(this, 'ondraw');
             
             return this;
         };
-        
-        
-        
+
+
+
+
         /**
         * Used in chaining. Runs a function there and then - not waiting for
         * the events to fire (eg the onbeforedraw event)
@@ -398,9 +393,9 @@
         */
         this.getShape = function (e)
         {
-            var mouseXY = RGraph.getMouseXY(e);
-            var mouseX  = mouseXY[0];
-            var mouseY  = mouseXY[1];
+            var mouseXY = RG.getMouseXY(e),
+                mouseX  = mouseXY[0],
+                mouseY  = mouseXY[1];
 
             if (
                    mouseX >= this.gutterLeft
@@ -412,56 +407,13 @@
                 var tooltip = prop['chart.tooltips'] ? prop['chart.tooltips'][0] : null
                 
                 return {
-                        0: this, 1: 0 /* the index */, 2: tooltip,
-                        'object': this,'index': 0, 'tooltip': tooltip
-                       };
+                    0: this, 1: 0 /* the index */, 2: tooltip,
+                    'object': this,'index': 0, 'tooltip': tooltip
+                };
             }
             
             return null;
         };
-
-
-
-
-        /**
-        * This function positions a tooltip when it is displayed
-        * 
-        * @param obj object    The chart object
-        * @param int x         The X coordinate specified for the tooltip
-        * @param int y         The Y coordinate specified for the tooltip
-        * @param objec tooltip The tooltips DIV element
-        *
-        this.positionTooltip = function (obj, x, y, tooltip, idx)
-        {
-            var canvasXY   = RG.getCanvasXY(obj.canvas);
-            var width      = tooltip.offsetWidth;
-            var height     = tooltip.offsetHeight;
-            var tooltipX   = RG.getCanvasXY(obj.canvas)[0] + ((obj.canvas.width - this.gutterLeft - this.gutterRight) / 2) + this.gutterLeft;
-            var tooltipY   = RG.getCanvasXY(obj.canvas)[1] + ((obj.canvas.height - this.gutterTop - this.gutterBottom) / 2) + this.gutterTop;
-            var mouseXY    = RG.getMouseXY(window.event);
-    
-            // Set the top position
-            tooltip.style.left = 0;
-            tooltip.style.top  = window.event.pageY - height - 5 + 'px';
-    
-            // By default any overflow is hidden
-            tooltip.style.overflow = '';
-            
-            // Reposition the tooltip if at the edges:
-            
-            // LEFT edge
-            if (canvasXY[0] + mouseXY[0] - (width / 2) < 0) {
-                tooltip.style.left = canvasXY[0] + mouseXY[0]  - (width * 0.1) + 'px';
-    
-            // RIGHT edge
-            } else if (canvasXY[0] + mouseXY[0]  + (width / 2) > doc.body.offsetWidth) {
-                tooltip.style.left = canvasXY[0] + mouseXY[0]  - (width * 0.9) + 'px';
-    
-            // Default positioning - CENTERED
-            } else {
-                tooltip.style.left = canvasXY[0] + mouseXY[0]  - (width / 2) + 'px';
-            }
-        };*/
 
 
 
@@ -478,13 +430,15 @@
                 if (typeof prop['chart.highlight.style'] === 'function') {
                     (prop['chart.highlight.style'])(shape);
                 } else {
-                    pa2(co, [
-                        'b',
-                        'r', prop['chart.gutter.left'], prop['chart.gutter.top'], ca.width - prop['chart.gutter.left'] - prop['chart.gutter.right'],ca.height - prop['chart.gutter.top'] - prop['chart.gutter.bottom'],
-                        'f',prop['chart.highlight.fill'],
-                        's',prop['chart.highlight.stroke']
-                    ]);
-                            
+                    pa2(co,
+                        'b r % % % % f % s %',
+                        prop['chart.gutter.left'],
+                        prop['chart.gutter.top'],
+                        ca.width - prop['chart.gutter.left'] - prop['chart.gutter.right'],
+                        ca.height - prop['chart.gutter.top'] - prop['chart.gutter.bottom'],
+                        prop['chart.highlight.fill'],
+                        prop['chart.highlight.stroke']
+                    );
                 }
             }
         };
@@ -497,7 +451,6 @@
         */
         this.parseColors = function ()
         {
-
             // Save the original colors so that they can be restored when the canvas is reset
             if (this.original_colors.length === 0) {
                 this.original_colors['chart.strokestyle']      = RG.arrayClone(prop['chart.strokestyle']);
@@ -539,15 +492,18 @@
             if (!color) {
                 return color;
             }
-    
-            if (typeof color === 'string' && color.match(/^gradient\((.*)\)$/i)) {
-    
-                var parts = RegExp.$1.split(':');
-    
-                // Create the gradient
-                var grad = co.createLinearGradient(this.gutterLeft, this.gutterTop, ca.width - this.gutterRight, ca.height - this.gutterRight);
 
-                var diff = 1 / (parts.length - 1);
+            if (typeof color === 'string' && color.match(/^gradient\((.*)\)$/i)) {
+
+                // Split and create the gradient
+                var parts = RegExp.$1.split(':'),
+                    grad = co.createLinearGradient(
+                        this.gutterLeft,
+                        this.gutterTop,
+                        ca.width - this.gutterRight,
+                        ca.height - this.gutterRight
+                    ),
+                    diff = 1 / (parts.length - 1);
     
                 //grad.addColorStop(0, RG.trim(parts[0]));
     
@@ -574,7 +530,11 @@
                 type = 'on' + type;
             }
             
-            this[type] = func;
+            if (typeof this[type] !== 'function') {
+                this[type] = func;
+            } else {
+                RG.addCustomEventListener(this, type, func);
+            }
     
             return this;
         };
@@ -593,19 +553,10 @@
 
 
 
-
-
-        RG.att(ca);
-
-
-
-
-
-
         /**
         * Objects are now always registered so that the chart is redrawn if need be.
         */
-        RG.Register(this);
+        RG.register(this);
 
 
 

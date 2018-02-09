@@ -1,16 +1,12 @@
-// version: 2016-07-09
+// version: 2017-11-25
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
     * |                                                                                |
     * |                          http://www.rgraph.net                                 |
     * |                                                                                |
-    * | RGraph is dual licensed under the Open Source GPL (General Public License)     |
-    * | v2.0 license and a commercial license which means that you're not bound by     |
-    * | the terms of the GPL. The commercial license starts at just 99 GBP and         |
-    * | you can read about it here:                                                    |
-    * |                                                                                |
-    * |                      http://www.rgraph.net/license                             |
+    * | RGraph is licensed under the Open Source MIT license. That means that it's     |
+    * | totally free to use and there are no restrictions on what you can do with it!  |
     * o--------------------------------------------------------------------------------o
     */
 
@@ -355,6 +351,21 @@
 
 
     //
+    // Converts an the truthy values to falsey values and vice-versa
+    //
+    RG.arrayInvert = function (arr)
+    {
+        for (var i=0,len=arr.length; i<len; ++i) {
+            arr[i] = !arr[i];
+        }
+
+        return arr;
+    };
+
+
+
+
+    //
     // An array_trim function that removes the empty elements off
     //both ends
     //
@@ -457,7 +468,7 @@
         }
 
         for (var i=0,len=arr.length; i<len; ++i) {
-            if (typeof arr[i] === 'number') {
+            if (typeof arr[i] === 'number' && !isNaN(arr[i])) {
 
                 var val = arguments[1] ? ma.abs(arr[i]) : arr[i];
                 
@@ -539,6 +550,10 @@
 
 
 
+
+
+
+
     /**
     * An array sum function
     * 
@@ -554,13 +569,13 @@
         }
         
         // Account for null
-        if (RG.is_null(arr)) {
+        if (RG.isNull(arr)) {
             return 0;
         }
 
         var i, sum, len = arr.length;
 
-        for(i=0,sum=0;i<len;sum+=arr[i++]);
+        for(i=0,sum=0;i<len;sum+=(arr[i++]||0));
 
         return sum;
     };
@@ -936,19 +951,19 @@
         * Draw the title
         */
 
-        RG.text2(co, {
-            'font':font,
-            'size':size,
-            'x':centerx,
-            'y':vpos,
-            'text':text,
-            'valign':valign,
-            'halign':halign,
-            'bounding':bgcolor != null,
+        var ret = RG.text2(obj, {
+            font:font,
+            size:size,
+            x:centerx,
+            y:vpos,
+            text:text,
+            valign:valign,
+            halign:halign,
+            bounding:bgcolor != null,
             'bounding.fill':bgcolor,
             'bold':bold,
             italic: italic,
-            'tag':'title',
+            tag:'title',
             marker: false
         });
 
@@ -1254,15 +1269,16 @@
     
     
                 RG.text2(prop['chart.text.accessible'] ? obj.context : co,  {
-					'font':font,
-					'size':size,
-					'x':hpos,
-					'y':vpos,
-					'text':prop['chart.title.xaxis'],
-					'halign':'center',
-					'valign':'center',
-					'bold':bold,
-					'tag': 'title xaxis'
+					font:font,
+					size:size,
+					x:hpos,
+					y:vpos,
+					text:prop['chart.title.xaxis'],
+					halign:'center',
+					valign:'center',
+					bold:bold,
+                    color: prop['chart.title.xaxis.color'] || 'black',
+					tag: 'title xaxis'
 				});
             }
     
@@ -1510,10 +1526,10 @@
         
                     if (prop['chart.background.grid.vlines']) {
                         // Draw the vertical lines
-                        var width = (cacheCanvas.width - gutterRight)
+                        var width = (cacheCanvas.width - gutterRight);
                         var vsize = prop['chart.background.grid.vsize'];
-    
-                        for (x=gutterLeft; x<=width; x+=vsize) {
+
+                        for (x=gutterLeft; ma.round(x)<=width; x+=vsize) {
                             cacheContext.moveTo(ma.round(x), gutterTop);
                             cacheContext.lineTo(ma.round(x), ca.height - gutterBottom);
                         }
@@ -1530,7 +1546,7 @@
     
     
     
-                // Necessary to ensure the grids drawn before continuing
+                // Ensure the grids drawn before continuing
                 cacheContext.beginPath();
                 cacheContext.closePath();
             }
@@ -1799,16 +1815,16 @@
     RG.drawInGraphLabels =
     RG.DrawInGraphLabels = function (obj)
     {
-        var ca      = obj.canvas;
-        var co      = obj.context;
-        var prop    = obj.properties;
-        var labels  = prop['chart.labels.ingraph'];
-        var labels_processed = [];
+        var ca      = obj.canvas,
+            co      = obj.context,
+            prop    = obj.properties,
+            labels  = prop['chart.labels.ingraph'],
+            labels_processed = [];
 
         // Defaults
-        var fgcolor   = 'black';
-        var bgcolor   = 'white';
-        var direction = 1;
+        var fgcolor   = 'black',
+            bgcolor   = 'white',
+            direction = 1;
 
         if (!labels) {
             return;
@@ -1830,10 +1846,24 @@
             }
         }
 
+
+
+
+
+
+
+
         /**
         * Turn off any shadow
         */
         RG.noShadow(obj);
+
+
+
+
+
+
+
 
         if (labels_processed && labels_processed.length > 0) {
 
@@ -1896,64 +1926,94 @@
                                 labels_processed[i][3] == -1
                                ) {
 
-                                co.moveTo(ma.round(x), y + 5);
-                                co.lineTo(ma.round(x), y + 5 + length);
-                                
-                                co.stroke();
-                                co.beginPath();                                
-                                
-                                // This draws the arrow
-                                co.moveTo(ma.round(x), y + 5);
-                                co.lineTo(ma.round(x) - 3, y + 10);
-                                co.lineTo(ma.round(x) + 3, y + 10);
-                                co.closePath();
+                                // Draw an up arrow
+                                drawUpArrow(x, y)
+                                var valign = 'top';
                                 
                                 var text_x = x;
                                 var text_y = y + 5 + length;
                             
                             } else {
-                                
+
                                 var text_x = x;
                                 var text_y = y - 5 - length;
 
-                                co.moveTo(ma.round(x), y - 5);
-                                co.lineTo(ma.round(x), y - 5 - length);
-                                
-                                co.stroke();
-                                co.beginPath();
-                                
-                                // This draws the arrow
-                                co.moveTo(ma.round(x), y - 5);
-                                co.lineTo(ma.round(x) - 3, y - 10);
-                                co.lineTo(ma.round(x) + 3, y - 10);
-                                co.closePath();
+                                if (text_y < 5 && (typeof labels_processed[i] === 'string' || typeof labels_processed[i][3] === 'undefined')) {
+                                    text_y = y + 5 + length;
+                                    var valign = 'top';
+                                }
+
+                                if (valign === 'top') {
+                                    /// Draw an down arrow
+                                    drawUpArrow(x, y);
+                                } else {
+                                    /// Draw an up arrow
+                                    drawDownArrow(x, y);
+                                }
                             }
                         
                             co.fill();
                         }
 
-                        // Taken out on the 10th Nov 2010 - unnecessary
-                        //var width = context.measureText(labels[i]).width;
-                        
                         co.beginPath();
                             
-                            // Fore ground color
+                            // Foreground color
                             co.fillStyle = (typeof labels_processed[i] === 'object' && typeof labels_processed[i][1] === 'string') ? labels_processed[i][1] : 'black';
 
                             RG.text2(obj,{
-                                'font':prop['chart.text.font'],
-                                'size':prop['chart.text.size'],
-                                'x':text_x,
-                                'y':text_y + (obj.properties['chart.text.accessible'] ? 2 : 0),
-                                'text': (typeof labels_processed[i] === 'object' && typeof labels_processed[i][0] === 'string') ? labels_processed[i][0] : labels_processed[i],
-                                'valign': 'bottom',
-                                'halign':'center',
-                                'bounding':true,
+                                font:            prop['chart.text.font'],
+                                size:            prop['chart.text.size'],
+                                x:               text_x,
+                                y:               text_y + (obj.properties['chart.text.accessible'] ? 2 : 0),
+                                text:            (typeof labels_processed[i] === 'object' && typeof labels_processed[i][0] === 'string') ? labels_processed[i][0] : labels_processed[i],
+                                valign:          valign || 'bottom',
+                                halign:          'center',
+                                bounding:        true,
                                 'bounding.fill': (typeof labels_processed[i] === 'object' && typeof labels_processed[i][2] === 'string') ? labels_processed[i][2] : 'white',
-                                'tag':'labels ingraph'
+                                tag:             'labels ingraph'
                             });
                         co.fill();
                     }
+
+
+
+
+                    // Draws a down arrow
+                    function drawUpArrow (x, y)
+                    {
+                        co.moveTo(ma.round(x), y + 5);
+                        co.lineTo(ma.round(x), y + 5 + length);
+                        
+                        co.stroke();
+                        co.beginPath();                                
+                        
+                        // This draws the arrow
+                        co.moveTo(ma.round(x), y + 5);
+                        co.lineTo(ma.round(x) - 3, y + 10);
+                        co.lineTo(ma.round(x) + 3, y + 10);
+                        co.closePath();
+                    }
+
+
+
+
+                    // Draw an up arrow
+                    function drawDownArrow (x, y)
+                    {
+                        co.moveTo(ma.round(x), y - 5);
+                        co.lineTo(ma.round(x), y - 5 - length);
+                        
+                        co.stroke();
+                        co.beginPath();
+                        
+                        // This draws the arrow
+                        co.moveTo(ma.round(x), y - 5);
+                        co.lineTo(ma.round(x) - 3, y - 10);
+                        co.lineTo(ma.round(x) + 3, y - 10);
+                        co.closePath();
+                    }
+                    
+                    valign = undefined;
                 }
             }
         }
@@ -2337,14 +2397,18 @@
     RG.addCustomEventListener =
     RG.AddCustomEventListener = function (obj, name, func)
     {
-        var RG = RGraph;
-
+        // Initialise the events array if necessary
         if (typeof RG.events[obj.uid] === 'undefined') {
             RG.events[obj.uid] = [];
         }
+        
+        // Prepend "on" if necessary
+        if (name.substr(0, 2) !== 'on') {
+            name = 'on' + name;
+        }
 
         RG.events[obj.uid].push([obj, name, func]);
-        
+
         return RG.events[obj.uid].length - 1;
     };
 
@@ -2362,20 +2426,26 @@
     {
         if (obj && obj.isRGraph) {
         
-            // New style of adding custom events
+            // This allows the eventsMouseout property to work
+            // (for some reason...)
+            if (name.match(/(on)?mouseout/) && typeof obj.properties['chart.events.mouseout'] === 'function') {
+                (obj.properties['chart.events.mouseout'])(obj);
+            }
+        
+            // DOM1 style of adding custom events
             if (obj[name]) {
                 (obj[name])(obj);
             }
             
             var uid = obj.uid;
-    
+
             if (   typeof uid === 'string'
                 && typeof RG.events === 'object'
                 && typeof RG.events[uid] === 'object'
                 && RG.events[uid].length > 0) {
-    
+
                 for(var j=0; j<RG.events[uid].length; ++j) {
-                    if (RG.events[uid][j] && RG.events[uid][j][1] == name) {
+                    if (RG.events[uid][j] && RG.events[uid][j][1] === name) {
                         RG.events[uid][j][2](obj);
                     }
                 }
@@ -2767,6 +2837,10 @@
 
 
 
+
+
+
+
     /**
     * Retrieves the relevant objects based on the X/Y position.
     * NOTE This function returns an array of objects
@@ -2776,9 +2850,9 @@
     */
     RG.OR.getObjectsByXY = function (e)
     {
-        var canvas  = e.target;
-        var ret     = [];
-        var objects = RG.ObjectRegistry.getObjectsByCanvasID(canvas.id);
+        var canvas  = e.target,
+            ret     = [],
+            objects = RG.ObjectRegistry.getObjectsByCanvasID(canvas.id);
 
         // Retrieve objects "front to back"
         for (var i=(objects.length - 1); i>=0; --i) {
@@ -2792,6 +2866,10 @@
         
         return ret;
     };
+
+
+
+
 
 
 
@@ -3143,6 +3221,7 @@
         {
             if (this.readyState == 4 && this.status == 200) {
                 this.__user_callback__ = callback;
+
                 this.__user_callback__(this.responseText);
             }
         }
@@ -3328,16 +3407,16 @@
     RG.MeasureText = function (text, bold, font, size)
     {
         // Add the sizes to the cache as adding DOM elements is costly and causes slow downs
-        if (typeof RGraph.measuretext_cache === 'undefined') {
-            RGraph.measuretext_cache = [];
+        if (typeof RG.measuretext_cache === 'undefined') {
+            RG.measuretext_cache = [];
         }
 
         var str = text + ':' + bold + ':' + font + ':' + size;
-        if (typeof RGraph.measuretext_cache == 'object' && RGraph.measuretext_cache[str]) {
-            return RGraph.measuretext_cache[str];
+        if (typeof RG.measuretext_cache == 'object' && RG.measuretext_cache[str]) {
+            return RG.measuretext_cache[str];
         }
         
-        if (!RGraph.measuretext_cache['text-div']) {
+        if (!RG.measuretext_cache['text-div']) {
             var div = document.createElement('DIV');
                 div.style.position = 'absolute';
                 div.style.top = '-100px';
@@ -3345,21 +3424,21 @@
             document.body.appendChild(div);
             
             // Now store the newly created DIV
-            RGraph.measuretext_cache['text-div'] = div;
+            RG.measuretext_cache['text-div'] = div;
 
-        } else if (RGraph.measuretext_cache['text-div']) {
-            var div = RGraph.measuretext_cache['text-div'];
+        } else if (RG.measuretext_cache['text-div']) {
+            var div = RG.measuretext_cache['text-div'];
         }
 
-        div.innerHTML = text.replace(/\r\n/g, '<br />');
+        div.innerHTML        = text.replace(/\r\n/g, '<br />');
         div.style.fontFamily = font;
         div.style.fontWeight = bold ? 'bold' : 'normal';
-        div.style.fontSize = (size || 12) + 'pt';
+        div.style.fontSize   = (size || 12) + 'pt';
         
         var size = [div.offsetWidth, div.offsetHeight];
 
         //document.body.removeChild(div);
-        RGraph.measuretext_cache[str] = size;
+        RG.measuretext_cache[str] = size;
         
         return size;
     };
@@ -3482,7 +3561,7 @@
             // further down
             opt.text = String(opt.text).replace(/\r?\n/g, '[[RETURN]]');
 
-            
+
             // Create the node cache array that nodes
             // already created are stored in
             if (typeof RG.text2.domNodeCache === 'undefined') {
@@ -3492,7 +3571,7 @@
             if (typeof RG.text2.domNodeCache[obj.id] === 'undefined') {
                 RG.text2.domNodeCache[obj.id] = new Array();
             }
-            
+
             // Create the dimension cache array that node
             // dimensions are stored in
             if (typeof RG.text2.domNodeDimensionCache === 'undefined') {
@@ -3521,6 +3600,35 @@
                     span.style.fontSize   = (opt.size || defaults.size) + 'pt';
                     span.style.whiteSpace = 'nowrap';
                     span.tag              = opt.tag;
+
+
+                    // CSS angled text. This should be conasidered BETA quality code at the moment,
+                    // but it seems to be OK. You may need to use the labelsOffsety when using this
+                    // option.
+                    if (typeof opt.angle === 'number' && opt.angle !== 0) {
+                    
+                        var coords = RG.measureText(
+                            opt.text,
+                            opt.bold,
+                            opt.font,
+                            opt.size
+                        );
+                    
+                        //span.style.left = parseFloat(span.style.left) - coords[0] + 'px';
+                        span.style.transformOrigin = '100% 50%';
+                        span.style.transform       = 'rotate(' + opt.angle + 'deg)';
+                    }
+
+
+
+
+                    // Shadow
+                    span.style.textShadow = '{1}px {2}px {3}px {4}'.format(
+                        co.shadowOffsetX,
+                        co.shadowOffsetY,
+                        co.shadowBlur,
+                        co.shadowColor
+                    );
 
 
                     if (opt.bounding) {
@@ -3666,19 +3774,29 @@
             //                        clearing to that canvas.
             RG.text2.domNodeCache.reset = function ()
             {
+
                 // Limit the clearing to a single canvas tag
                 if (arguments[0]) {
-                
-                    var nodes = RG.text2.domNodeCache[arguments[0].id];
+                    
+                    if (typeof arguments[0] === 'string') {
+                        var ca = document.getElementById(arguments[0])
+                    } else {
+                        var ca = arguments[0];
+                    }
+
+                    var nodes = RG.text2.domNodeCache[ca.id];
                 
                     for (j in nodes) {
                         
-                        var node = RG.text2.domNodeCache[arguments[0].id][j];
+                        var node = RG.text2.domNodeCache[ca.id][j];
                         
                         if (node && node.parentNode) {
                             node.parentNode.removeChild(node);
                         }
                     }
+                    
+                    RG.text2.domNodeCache[ca.id]          = [];
+                    RG.text2.domNodeDimensionCache[ca.id] = [];
 
                 // Clear all DOM text from all tags
                 } else {
@@ -3689,6 +3807,9 @@
                             }
                         }
                     }
+
+                    RG.text2.domNodeCache          = [];
+                    RG.text2.domNodeDimensionCache = [];
                 }
             };
 
@@ -3749,7 +3870,7 @@
                         }
                     }
                 }
- 
+
                 return nodes;
             };
 
@@ -3773,11 +3894,10 @@
 
             return ret;
         }
-        
-        
 
-    
-    
+
+
+
         /**
         * An RGraph object can be given, or a string or the 2D rendering context
         * The coords are placed on the obj.coordsText variable ONLY if it's an RGraph object. The function
@@ -4240,6 +4360,7 @@
             // Safari seems to need this
             co.lineWidth = 1;
 
+
             /**
             * Draw a rectangle on the canvas to highlight the appropriate area
             */
@@ -4658,7 +4779,7 @@
 
 
     /**
-    * Generates logs for... ...log charts
+    * Generates logs for... log charts
     * 
     * @param number n    The number to generate the log for
     * @param number base The base to use
@@ -4797,10 +4918,73 @@
 
 
 
+
+
+
+
     /**
-    * NOT USED ANY MORE
+    * Put the attribution on the canvas IF textAccessible is enabled.
+    * By default it adds the attribution in the bottom right corner.
+    * 
+    * @param object obj The chart object
     */
-    RG.att = function (ca){}
+    RG.att = 
+    RG.attribution = function (obj)
+    {
+        var ca        = obj.canvas,
+            co        = obj.context,
+            prop      = obj.properties;
+
+        if (!ca || !co) {
+            return;
+        }
+
+        // Needs to be a new var... statement here
+        var width     = ca.width,
+            height    = ca.height,
+            wrapper   = document.getElementById('cvs').__object__.canvas.parentNode,
+            text      = prop['chart.attribution.text'] || 'Free Charts with RGraph.net',
+            x         = prop['chart.attribution.x'],           // null
+            y         = prop['chart.attribution.y'],           // null
+            bold      = prop['chart.attribution.bold'],   // false
+            italic    = prop['chart.attribution.italic'], // true
+            font      = prop['chart.attribution.font'] || 'sans-serif', // sans-serif
+            size      = prop['chart.attribution.size'] || 8, // 8
+            underline = prop['chart.attribution.underline'] ? 'underline' : 'none', // false
+            color     = typeof prop['chart.attribution.color'] === 'string' ? prop['chart.attribution.color'] : '',
+            href      = typeof prop['chart.attribution.href'] === 'string' ? prop['chart.attribution.href'] : 'http://www.rgraph.net/canvas/index.html';
+
+        if (wrapper.attribution_node) {
+            return;
+        }
+
+        
+        // Take some measurements
+        var measurements = RG.measureText(text, bold, font, size);
+
+        // Create the link
+        var a                      = document.createElement('A');
+            a.href                 = href;
+            a.innerHTML            = text;
+            a.target               = '_blank';
+            a.style.position       = 'absolute';
+            a.style.left           = typeof x === 'number' ? x : wrapper.offsetWidth - measurements[0] - 5 + 'px';
+            a.style.top            = typeof y === 'number' ? y : wrapper.offsetHeight - measurements[1] + 'px';
+            a.style.fontSize       = size + 'pt';
+            a.style.fontStyle      = typeof italic === 'boolean'  ? (italic ? 'italic' : '') : 'italic',
+            a.style.fontWeight     = bold ? 'bold' : '',
+            a.style.textDecoration = underline;
+            a.style.fontFamily     = font;
+            a.style.color          = color;
+        wrapper.appendChild(a);
+        
+        wrapper.attribution_node = a;
+    };
+
+
+
+
+
 
 
 
@@ -4894,7 +5078,7 @@
 
 
 
-        if (typeof str === 'object') {
+        if (typeof str === 'object' && !RG.isNull(str)) {
             for (var i=0,len=str.length; i<len; i+=1) {
                 str[i] = parseFloat(str[i]);
             }
@@ -4967,7 +5151,7 @@
 
                 // Allow for functions in the configuration. Run them immediately
                 if (key.match(/^exec[0-9]*$/)) {
-                    config[key](obj, settings);
+                    (config[key])(obj, settings);
                     continue;
                 }
 
@@ -5181,7 +5365,7 @@
     */
     window.$p = function (v)
     {
-        //RGraph.pr(arguments[0], arguments[1], arguments[3]);
+        RGraph.pr(arguments[0], arguments[1], arguments[3]);
     };
 
 
