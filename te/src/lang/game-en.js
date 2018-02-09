@@ -10,7 +10,6 @@ class BioMechanic {
         this.game.state.add("Loading", loading);
         this.game.state.add("PlayLevel", playLevel);
         this.game.state.add("Ending", ending);
-//        this.game.state.add("Ending", ending);
         this.game.levels = 7;
         this.game.currentLevel = 0;
         this.game.progress = 0

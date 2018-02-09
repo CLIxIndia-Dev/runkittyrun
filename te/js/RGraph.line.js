@@ -1,15 +1,12 @@
-// version: 2016-07-09
+// version: 2017-11-25
     /**
     * o--------------------------------------------------------------------------------o
     * | This file is part of the RGraph package - you can learn more at:               |
     * |                                                                                |
     * |                          http://www.rgraph.net                                 |
     * |                                                                                |
-    * | RGraph is dual licensed under the Open Source GPL (General Public License)     |
-    * | v2.0 license and a commercial license which means that you're not bound by     |
-    * | the terms of the GPL. The commercial license is just 99 GBP and you can     |
-    * | read about it here:                                                            |
-    * |                      http://www.rgraph.net/license                             |
+    * | RGraph is licensed under the Open Source MIT license. That means that it's     |
+    * | totally free to use and there are no restrictions on what you can do with it!  |
     * o--------------------------------------------------------------------------------o
     */
 
@@ -168,6 +165,7 @@
             'chart.title.xaxis.bold':       true,
             'chart.title.xaxis.size':       null,
             'chart.title.xaxis.font':       null,
+            'chart.title.xaxis.color':      null,
             'chart.title.yaxis':            '',
             'chart.title.yaxis.bold':       true,
             'chart.title.yaxis.size':       null,
@@ -255,7 +253,7 @@
             'chart.variant':                null,
             'chart.axis.color':             'black',
             'chart.axis.linewidth':         1,
-            'chart.numxticks':              (data && typeof(data[0]) == 'number' ? data.length - 1: 20),
+            'chart.numxticks':              (data && typeof(data[0]) == 'number' ? data.length - 1 : (typeof data[0] === 'object' && data[0] && typeof data[0][0] === 'number' ? data[0].length - 1 : 20)),
             'chart.numyticks':              10,
             'chart.zoom.factor':            1.5,
             'chart.zoom.fade.in':           true,
@@ -274,6 +272,7 @@
             'chart.resize.handle.adjust':   [0,0],
             'chart.resize.handle.background': null,
             'chart.adjustable':             false,
+            'chart.adjustable.only':        null,
             'chart.noredraw':               false,
             'chart.outofbounds':            false,
             'chart.outofbounds.clip':       false,
@@ -295,7 +294,9 @@
             'chart.combinedchart.effect':     null,
             'chart.combinedchart.effect.options':  null,
             'chart.combinedchart.effect.callback': null,
-            'chart.clearto':   'rgba(0,0,0,0)'
+            'chart.clearto':   'rgba(0,0,0,0)',
+            'chart.dotted':     false,
+            'chart.dashed':     false
         }
 
         /**
@@ -805,7 +806,6 @@
             */
     
             co.save()
-            // co.setLineDash([5]) //asdf
             co.beginPath();
             co.rect(0, 0, ca.width * prop['chart.animation.trace.clip'], ca.height);
             co.clip();
@@ -894,8 +894,21 @@
             /**
             * If the line is filled re-stroke the lines
             */
+            if (prop['chart.outofbounds.clip']) {
+                pa2(
+                    co,
+                    'sa b r % % % % cl b',
+                    0,
+                    this.gutterTop,
+                    ca.width,
+                    ca.height - this.gutterTop - this.gutterBottom
+                );
+            }
+
+
             if (prop['chart.filled'] && prop['chart.filled.accumulative'] && !prop['chart.curvy']) {
-        
+                
+
                 for (var i=0; i<this.coords2.length; ++i) {
         
                     co.beginPath();
@@ -1005,6 +1018,11 @@
 
 
             }
+
+
+        if (prop['chart.outofbounds.clip']) {
+            co.restore();
+        }
         co.restore();
     
         // ???
@@ -1116,8 +1134,8 @@
             * Fire the onfirstdraw event
             */
             if (this.firstDraw) {
-                RG.fireCustomEvent(this, 'onfirstdraw');
                 this.firstDraw = false;
+                RG.fireCustomEvent(this, 'onfirstdraw');
                 this.firstDrawFunc();
             }
 
@@ -1939,7 +1957,7 @@
                     lineData[i] *= prop['chart.animation.factor'];
                 }
             }
-    
+
             var penUp = false;
             var yPos  = null;
             var xPos  = 0;
@@ -2009,7 +2027,7 @@
 
             // Store the coords in another format, indexed by line number
             this.coords2[index] = lineCoords;
-    
+
             /**
             * For IE only: Draw the shadow ourselves as ExCanvas doesn't produce shadows
             */
@@ -2038,7 +2056,8 @@
             } else if (prop['chart.xaxispos'] == 'center') {
                 var xAxisPos = this.gutterTop + (this.grapharea / 2);
             } else if (prop['chart.xaxispos'] == 'bottom') {
-                var xAxisPos = ca.height - this.gutterBottom;
+                var xAxisPos = this.getYCoord(prop['chart.ymin'])
+
             }
 
 
@@ -2158,10 +2177,10 @@
                         co.lineTo(xPos, prop['chart.gutter.top'] +  1);
                         co.lineTo(lineCoords[0][0],prop['chart.gutter.top'] + 1);
                     } else if (typeof(lineCoords[i - 1][1]) == 'number') {
-    
+
                         // var yPosition = prop['chart.xaxispos'] == 'center' ? ((ca.height - this.gutterTop - this.gutterBottom) / 2) + this.gutterTop : this.getYCoord(0);//ca.height - this.gutterBottom;
-                        var yPosition = this.getYCoord(prop['chart.ymin']);
-    
+                        var yPosition = this.getYCoord(0);
+
                         co.lineTo(xPos,yPosition);
                         co.lineTo(lineCoords[0][0],yPosition);
                     }
@@ -2228,7 +2247,7 @@
 
                 // Now redraw the lines with the correct line width
                 this.SetShadow(index);
-                this.RedrawLine(lineCoords, color, linewidth, index);
+                this.redrawLine(lineCoords, color, linewidth, index);
                 co.stroke();
                 RG.NoShadow(this);
 
@@ -2656,14 +2675,25 @@
         this.redrawLine =
         this.RedrawLine = function (coords, color, linewidth, index)
         {
-
             if (prop['chart.noredraw'] || prop['chart.filled.range']) {
                 return;
             }
     
+
+            
             co.strokeStyle = (typeof(color) == 'object' && color && color.toString().indexOf('CanvasGradient') == -1 ? color[0] : color);
             co.lineWidth = linewidth;
-    
+
+
+            // Added this on 1/1/17 to facilitate dotted and dashed lines
+            if (prop['chart.dashed']) {
+                co.setLineDash([2,6])
+            } else if (prop['chart.dotted']) {
+                co.setLineDash([1,5])
+            }
+
+
+
             if (this.hidden(index)) {
                 co.strokeStyle = 'rgba(0,0,0,0)';
             }
@@ -2756,6 +2786,12 @@
                         co.stroke();
                     }
                 }
+            }
+            
+
+
+            if (prop['chart.dashed'] || prop['chart.dotted']) {
+                co.setLineDash([1,0]);
             }
         };
 
@@ -2874,13 +2910,8 @@
         this.getShape =
         this.getPoint = function (e)
         {
-            var obj  = this,
-                RG   = RGraph,
-                ca   = canvas  = e.target,
-                co   = context = this.context,
-                prop = this.properties;
-    
-            var mouseXY = RG.getMouseXY(e),
+            var obj     = this,
+                mouseXY = RG.getMouseXY(e),
                 mouseX  = mouseXY[0],
                 mouseY  = mouseXY[1];
             
@@ -2892,8 +2923,8 @@
     
             for (var i=0; i<obj.coords.length; ++i) {
             
-                var x = obj.coords[i][0];
-                var y = obj.coords[i][1];
+                var x = obj.coords[i][0],
+                    y = obj.coords[i][1];
     
                 // Do this if the hotspot is triggered by the X coord AND the Y coord
                 if (   mouseX <= (x + prop['chart.tooltips.hotspot.size'])
@@ -2907,14 +2938,31 @@
                         }
     
                         // Work out the dataset
-                        var dataset = 0;
-                        var idx = i;
+                        var dataset = 0,
+                            idx     = i;
+
                         while ((idx + 1) > this.data[dataset].length) {
                             idx -= this.data[dataset].length;
                             dataset++;
                         }
-    
-                        return {0:obj, 1:x, 2:y, 3:i, 'object': obj, 'x': x, 'y': y, 'index': i, 'tooltip': tooltip, 'dataset': dataset, 'index_adjusted': idx};
+
+                        // Don't return points for hidden datasets
+                        // Added 10/08/17
+                        // Fixed 22/09/17 Thanks to zsolt - this should be a continue
+                        // not a return.
+                        if (this.hidden(dataset)) {
+                            continue;
+                        }
+
+                        return {
+                            0: obj, object: obj,
+                            1: x,   x: x,
+                            2: y,   y: y,
+                            3: i,   index: i,
+                                    tooltip: tooltip,
+                                    dataset: dataset,
+                                    index_adjusted: idx
+                        };
     
                 } else if (    prop['chart.tooltips.hotspot.xonly'] == true
                             && mouseX <= (x + prop['chart.tooltips.hotspot.size'])
@@ -2922,7 +2970,13 @@
     
                             var tooltip = RG.parseTooltipText(prop['chart.tooltips'], i);
     
-                            return {0:obj, 1:x, 2:y, 3:i, 'object': obj, 'x': x, 'y': y, 'index': i, 'tooltip': tooltip};
+                            return {
+                                0: obj, object: obj,
+                                1: x,   x: x,
+                                2: y,   y: y,
+                                3: i,   index: i,
+                                        tooltip: tooltip
+                            };
                 }
             }
         };
@@ -3498,7 +3552,10 @@
                 grad.addColorStop(0, RG.trim(parts[0]));
     
                 for (var j=1; j<parts.length; ++j) {
-                    grad.addColorStop(j * diff, RG.trim(parts[j]));
+                    grad.addColorStop(
+                        j * diff,
+                        RG.trim(parts[j])
+                    );
                 }
             }
     
@@ -3603,8 +3660,13 @@
             if (type.substr(0,2) !== 'on') {
                 type = 'on' + type;
             }
-            
-            this[type] = func;
+
+
+            if (typeof this[type] !== 'function') {
+                this[type] = func;
+            } else {
+                RG.addCustomEventListener(this, type, func);
+            }
     
             return this;
         };
@@ -4156,6 +4218,26 @@
 
 
         RG.att(ca);
+
+
+
+        //
+        // Determines whether a point is adjustable or not.
+        //
+        // @param object A shape object
+        //
+        this.isAdjustable = function (shape)
+        {
+            if (RG.isNull(prop['chart.adjustable.only'])) {
+                return true;
+            }
+
+            if (RG.isArray(prop['chart.adjustable.only']) && prop['chart.adjustable.only'][shape.index]) {
+                return true;
+            }
+
+            return false;
+        };
 
 
 
