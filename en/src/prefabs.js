@@ -1,6 +1,9 @@
 class GameReporter {
     constructor() {
-        this.uuid = this.getCookie('session_uuid');
+        this.uuid = this.getCookie('session_id');
+        if (this.uuid.length === 0) {
+            this.uuid = this.getCookie('session_uuid');
+        }
         this.params = new URLSearchParams(location.search)
         this.api = (this.params.get('api') || '/api/v1/logging/genericlog')
     }
