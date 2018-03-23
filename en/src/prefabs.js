@@ -1,10 +1,19 @@
 class GameReporter {
     constructor() {
-        this.uuid = this.getCookie('session_id');
-        if (this.uuid.length === 0) {
-            this.uuid = this.getCookie('session_uuid');
-        }
         this.params = new URLSearchParams(location.search);
+        var cookiesToTry = [];
+        if (this.params.get('cookieName')) {
+          cookiesToTry.push(urlParams.get('cookieName'));
+        }
+        // because we have lots of potential integrations...yuck code smell!
+        cookiesToTry = cookiesToTry.concat(['session_id', 'session_uuid', 'user_id']);
+        for (var i=0; i<cookiesToTry.length; i++) {
+          var session = this.getCookie(cookiesToTry[i]);
+          if (session.length !== 0) {
+            this.uuid = session;
+            break;
+          }
+        }
         this.api = (this.params.get('api') ||
           `https://${window.location.hostname}:8080/api/v1/logging/genericlog`);
     }
@@ -21,7 +30,6 @@ class GameReporter {
         // if you want to test with a session id, you can set
         // document.cookie = "session_uuid=test"
         data_string['session_id'] = this.uuid;
-
 
         for (var key in data) { data_string[key] = data[key]; };
 
