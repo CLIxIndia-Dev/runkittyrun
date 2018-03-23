@@ -4,8 +4,9 @@ class GameReporter {
         if (this.uuid.length === 0) {
             this.uuid = this.getCookie('session_uuid');
         }
-        this.params = new URLSearchParams(location.search)
-        this.api = (this.params.get('api') || '/api/v1/logging/genericlog')
+        this.params = new URLSearchParams(location.search);
+        this.api = (this.params.get('api') ||
+          `https://${window.location.hostname}:8080/api/v1/logging/genericlog`);
     }
 
     submitData(data) {
@@ -30,18 +31,25 @@ class GameReporter {
         xhr.open('POST', this.api, true); // True means async
         xhr.setRequestHeader("x-api-proxy", this.uuid)
         xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.send(qbank);
-        if (xhr.response != 200) {
-            //            xhr.close()
-            var xhr = new XMLHttpRequest();
-            var unplatform = JSON.stringify(data_string);
-            xhr.open('POST', '/api/appdata/', true); // True means async
-            xhr.setRequestHeader("Content-Type", "application/json");
-            xhr.send(unplatform);
+
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4) {
+            // request done
+            if (xhr.status !== 200) {
+              // But failed
+              var xhrBackup = new XMLHttpRequest();
+              var unplatform = JSON.stringify(data_string);
+              xhrBackup.open('POST', '/api/appdata/', true); // True means async
+              xhrBackup.setRequestHeader("Content-Type", "application/json");
+              xhrBackup.send(unplatform);
+            }
+          }
         }
+
+        xhr.send(qbank);
     };
 
-    // Generic get cookie function 
+    // Generic get cookie function
     getCookie(cname) {
         var name = cname + "=";
         var ca = document.cookie.split(';');
@@ -67,7 +75,7 @@ class GameReporter {
             // this field has a max length of 32 chars
             "event_type": event,
             // params is the place to dump data related to the event. no max length and
-            // can include sub objects. this data is stringified in the submit data function. 
+            // can include sub objects. this data is stringified in the submit data function.
             // ex: params : {level : 2, player_velocity : 30, computer_velocity : 20 }
             "params": params,
         };
@@ -80,7 +88,7 @@ class GameReporter {
 class Menu {
     constructor(game) {
         this.game = game;
-        //        
+        //
         //        this.style = {
         //          'font': '30px OpenSans',
         //          'fill': 'black'
@@ -128,7 +136,7 @@ class Menu {
 
         } else {
             //          var menuTween = game.add.tween(game.menuGroup.scale).to(
-            //              { x: 1, y: 1}, 500, Phaser.Easing.Back.Out, true);     
+            //              { x: 1, y: 1}, 500, Phaser.Easing.Back.Out, true);
             game.world.bringToTop(game.groups.menuGroup)
 
             game.groups.menuGroup.scale.setTo(0);
@@ -190,7 +198,7 @@ class LabelButton {
         };
         this.button.anchor.setTo(0.5);
 
-        // hackey bit to override the add color method. 
+        // hackey bit to override the add color method.
         Phaser.Text.prototype.addColorHack = function (str) {
             this.style.fill = str
             this.setText(this.text)
@@ -235,7 +243,7 @@ class Player extends Phaser.Sprite {
         //        if (!game.groups.players) {
         //            game.groups.players = game.add.group();
         //        }
-        //       
+        //
         this.width = 64
         this.height = 64
         this.delays = [1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15];
@@ -690,10 +698,10 @@ class BetBox {
 //                    game.velgraph.liveGraph()
 //                }
 
-                
+
                 game.racecounter = 0
                 game.race = setInterval(function () {
-                    
+
                     if (game.settings.livePlot) {
                         if (game.racecounter % 1000 == 0) {
                             if (game.racecounter == 0) {
