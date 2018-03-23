@@ -9,7 +9,7 @@ class GameReporter {
         cookiesToTry = cookiesToTry.concat(['session_id', 'session_uuid', 'user_id']);
         for (var i=0; i<cookiesToTry.length; i++) {
           var session = this.getCookie(cookiesToTry[i]);
-          if (session.length !== 0) {
+          if (typeof session !== "undefined") {
             this.uuid = session;
             break;
           }
