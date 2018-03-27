@@ -6,7 +6,7 @@ In Run Kitty Run, you (the player) are training a cat to be the best mouse catch
 The game design document includes information about how to play and what levels exist can be found in the RunKittyRun GitHub wiki.
 
 ### Query Parameters
-Run Kitty Run has two settings for configuration:
+Run Kitty Run has three settings for configuration:
 
 * Logging
 * UI language
