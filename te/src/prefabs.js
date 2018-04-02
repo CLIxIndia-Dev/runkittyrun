@@ -1,3 +1,13 @@
+function getCookie(cname) {
+        var name = cname + "=";
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1);
+            if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+        }
+        console.log('no uuid found')
+    };
 class GameReporter {
     constructor() {
         this.params = new URLSearchParams(location.search);
@@ -15,7 +25,7 @@ class GameReporter {
           }
         }
         this.api = (this.params.get('api') ||
-          `https://${window.location.hostname}:8080/api/v1/logging/genericlog`);
+          `/tools/logging`);
     }
 
     submitData(data) {
@@ -26,36 +36,59 @@ class GameReporter {
         // is pretty flexible for the params field. Timestamps are generated
         // server-side & don't need to be included.
         var data_string = {}
-
+        
+        console.log(data + "data")
         // if you want to test with a session id, you can set
         // document.cookie = "session_uuid=test"
         data_string['session_id'] = this.uuid;
+        var csrftoken = ""
+        var user_id = ""
+        var buddy_details = ""
+        user_id = getCookie("user_id")
+        buddy_details = getCookie("user_and_buddy_ids")
+        csrftoken = getCookie("csrftoken")
+        console.log(csrftoken + 'csrftoken')
+        
+        //data_string['csrfmiddlewaretoken'] = csrftoken;
 
 
+        var formData = new FormData();
+        var date = new Date();
+        var timestamp = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+
+        // appending csrfmiddlewaretoken and user-id
+        formData.append('csrfmiddlewaretoken', getCookie("csrftoken"));
+        formData.append('app_name','runkittyrun');
+        //data_string['csrfmiddlewaretoken'] = csrftoken;
         for (var key in data) { data_string[key] = data[key]; };
 
-        var qbank = { data: data_string }
+        data_string['params']['language'] = "te"
+
+        var qbank = { 'params' : data_string['params'] ,"user_id" : user_id,'created_at' : timestamp,"buddy_details" : buddy_details }
         qbank = JSON.stringify(qbank);
+        console.log(qbank + "qbank")
+        formData.append('user_data', qbank);
+        xhr.open('POST', '/tools/logging', true); // True means async
+        // xhr.setRequestHeader("x-api-proxy", this.uuid)
+        // xhr.setRequestHeader("Content-Type", "application/json");
 
-        xhr.open('POST', this.api, true); // True means async
-        xhr.setRequestHeader("x-api-proxy", this.uuid)
-        xhr.setRequestHeader("Content-Type", "application/json");
-
-        xhr.onreadystatechange = () => {
+        xhr.onreadystatechange = () => { 
           if (xhr.readyState === 4) {
             // request done
             if (xhr.status !== 200) {
               // But failed
               var xhrBackup = new XMLHttpRequest();
               var unplatform = JSON.stringify(data_string);
-              xhrBackup.open('POST', '/api/appdata/', true); // True means async
+              xhrBackup.open('POST', '/tools/logging', true); // True means async
               xhrBackup.setRequestHeader("Content-Type", "application/json");
               xhrBackup.send(unplatform);
             }
           }
         }
-
-        xhr.send(qbank);
+        xhr.onload = function(){console.log(xhr.status)}
+        // alert(qbank);
+        console.log(formData);
+        xhr.send(formData);
     };
 
     // Generic get cookie function
@@ -87,6 +120,7 @@ class GameReporter {
             // can include sub objects. this data is stringified in the submit data function.
             // ex: params : {level : 2, player_velocity : 30, computer_velocity : 20 }
             "params": params,
+            "language" : "te"
         };
         //            this.submitData('/api/appdata/', data);
         this.submitData(data);
