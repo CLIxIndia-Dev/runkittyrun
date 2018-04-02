@@ -43,7 +43,9 @@ class GameReporter {
         data_string['session_id'] = this.uuid;
         var csrftoken = ""
         var user_id = ""
+        var buddy_details = ""
         user_id = getCookie("user_id")
+        buddy_details = getCookie("user_and_buddy_ids")
         csrftoken = getCookie("csrftoken")
         console.log(csrftoken + 'csrftoken')
         
@@ -61,7 +63,8 @@ class GameReporter {
         for (var key in data) { data_string[key] = data[key]; };
 
         data_string['params']['language'] = "en"
-        var qbank = { 'params' : data_string['params'] ,"user_id" : user_id,'created_at' : timestamp }
+
+        var qbank = { 'params' : data_string['params'] ,"user_id" : user_id,'created_at' : timestamp,"buddy_details" : buddy_details }
         qbank = JSON.stringify(qbank);
         console.log(qbank + "qbank")
         formData.append('user_data', qbank);
