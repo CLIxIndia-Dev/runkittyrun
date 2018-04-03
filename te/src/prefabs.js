@@ -64,7 +64,7 @@ class GameReporter {
 
         data_string['params']['language'] = "te"
 
-        var qbank = { 'params' : data_string['params'] ,"user_id" : user_id,'created_at' : timestamp,"buddy_details" : buddy_details }
+        var qbank = { 'params' : data_string['params'] ,"user_id" : user_id,'created_at' : timestamp,"buddy_details" : buddy_details,"app_name" : "runkittyrun" }
         qbank = JSON.stringify(qbank);
         console.log(qbank + "qbank")
         formData.append('user_data', qbank);
