@@ -6,13 +6,17 @@ class GameReporter {
           cookiesToTry.push(this.params.get('cookieName'));
         }
         // because we have lots of potential integrations...yuck code smell!
-        cookiesToTry = cookiesToTry.concat(['session_id', 'session_uuid', 'user_id']);
+        cookiesToTry = cookiesToTry.concat(['user_and_buddy_ids',
+          'session_id', 'session_uuid', 'user_id']);
         for (var i=0; i<cookiesToTry.length; i++) {
           var session = this.getCookie(cookiesToTry[i]);
           if (typeof session !== "undefined") {
             this.uuid = session;
             break;
           }
+        }
+        if (!this.uuid) {
+          this.uuid = "AnonymousUser";
         }
         this.api = (this.params.get('api') ||
           `https://${window.location.hostname}:8080/api/v1/logging/genericlog`);
