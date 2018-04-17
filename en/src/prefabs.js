@@ -3,7 +3,7 @@ class GameReporter {
         this.params = new URLSearchParams(location.search);
         var cookiesToTry = [];
         if (this.params.get('cookieName')) {
-          cookiesToTry.push(urlParams.get('cookieName'));
+          cookiesToTry.push(this.params.get('cookieName'));
         }
         // because we have lots of potential integrations...yuck code smell!
         cookiesToTry = cookiesToTry.concat(['session_id', 'session_uuid', 'user_id']);
