@@ -74,4 +74,8 @@ Similarly, you can include this setting along with the others by combining them 
 ```
 https://www.example.com/runkittyrun?cookieName=myUserIdCookie&lang=te&api=/foo
 ```
-#### How to update the cookie name used
+
+#### How to update the cookie name used inline
+If you would like to hardcode in another cookie name to the list of checked cookies, you can fork this repository and edit the `prefab.js` file in each language folder, i.e. `en/src/prefab.js`, `hi/src/prefab.js`, and `te/src/prefab.js`.
+
+You would make a change near [lines 9-10 to the cookiesToTry variable](https://github.com/CLIxIndia-Dev/runkittyrun/blob/ef989cfa004fd04ef2ceefdea03cdeedfa894dc1/en/src/prefabs.js#L9-L10), and prepend your cookie name to the list of cookies. An example of such a change can be found in this PR: https://github.com/CLIxIndia-Dev/runkittyrun/pull/18/files
