@@ -74,3 +74,4 @@ Similarly, you can include this setting along with the others by combining them 
 ```
 https://www.example.com/runkittyrun?cookieName=myUserIdCookie&lang=te&api=/foo
 ```
+#### How to update the cookie name used
