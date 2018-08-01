@@ -4,6 +4,5 @@ the copyright and licenses of the original copyright holders
 
 The authors of `Run Kitty Run` want to acknowledge that
 this bundle includes (in unmodified form):
-  - OpenSans font (Apache v2): http://www.opensans.com/
   - Lohit Devanagari font (SIL OFL v1.1): http://www.fontsc.com/font/lohit-devanagari
   - Gidugu font (SIL OFL v1.1): https://fonts.google.com/specimen/Gidugu

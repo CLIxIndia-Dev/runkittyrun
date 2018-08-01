@@ -101,11 +101,6 @@ class GameReporter {
 class Menu {
     constructor(game) {
         this.game = game;
-        //
-        //        this.style = {
-        //          'font': '30px OpenSans',
-        //          'fill': 'black'
-        //        };
         var _this = this;
         var levnum;
         if (game.currentLevel === 0) {
